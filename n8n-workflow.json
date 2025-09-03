@@ -1,0 +1,591 @@
+{
+  "name": "ODIADEV — Website Chat Backbone (Leads • Intake • Conversations • Alerts)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-events",
+        "responseMode": "onReceived",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "webhook_ae1b5c2a",
+      "name": "Webhook: Agent Events",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1260,
+        -40
+      ],
+      "webhookId": "agent-events-8c8f9c41"
+    },
+    {
+      "parameters": {
+        "propertyName": "={{$json.body.type}}",
+        "rules": {
+          "rules": [
+            { "operation": "equal", "value": "lead" },
+            { "operation": "equal", "value": "intake" },
+            { "operation": "equal", "value": "conversation_end" },
+            { "operation": "equal", "value": "error" }
+          ]
+        }
+      },
+      "id": "switch_c1f3f7db",
+      "name": "Switch: Event Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "name", "value": "={{$json.body.name}}" },
+            { "name": "email", "value": "={{$json.body.email}}" },
+            { "name": "phone", "value": "={{$json.body.phone || ''}}" },
+            { "name": "message", "value": "={{$json.body.message || ''}}" },
+            { "name": "source", "value": "={{$json.body.source || 'website'}}" },
+            { "name": "session_id", "value": "={{$json.body.session_id || ''}}"}
+          ],
+          "dateTime": [
+            { "name": "created_at", "value": "={{$now}}"}
+          ]
+        }
+      },
+      "id": "set_2c5db6f9",
+      "name": "Set: Normalize Lead",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.RENDER_QUALIFY_URL}}",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "timeout": 30000
+        },
+        "headerParametersJson": "={{ $env.BRAIN_API_KEY ? { Authorization: 'Bearer ' + $env.BRAIN_API_KEY } : {} }}",
+        "bodyParametersJson": "={{ { name: $json.name, email: $json.email, phone: $json.phone, message: $json.message, source: $json.source, session_id: $json.session_id } }}"
+      },
+      "id": "http_52a1e9b0",
+      "name": "HTTP: Qualify (Render)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -600,
+        -220
+      ]
+    },
+    {
+      "parameters": { "mode": "mergeByIndex" },
+      "id": "merge_1b7f4e2c",
+      "name": "Merge: Lead + Qualify",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{$json.qualified === true}}" }
+          ]
+        }
+      },
+      "id": "if_4f8a7b3c",
+      "name": "IF: Qualified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -220
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@odiadev.outlook.com",
+        "toEmail": "={{$env.ALERT_EMAIL_TO || 'support@odiadev.outlook.com'}}",
+        "subject": "✅ Qualified Lead: {{$json.name}} ({{$json.email}})",
+        "text": "New qualified lead\nName: {{$json.name}}\nEmail: {{$json.email}}\nPhone: {{$json.phone}}\nSource: {{$json.source}}\nScore: {{$json.score || 'N/A'}}\nNotes: {{$json.notes || ''}}\nSession: {{$json.session_id}}\nTime: {{$json.created_at}}"
+      },
+      "id": "email_aa2b11f8",
+      "name": "Email: Qualified Lead",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -320
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP - ODIADEV (Outlook)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads?on_conflict=email&select=*",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "response": "json",
+          "timeout": 30000
+        },
+        "headerParametersJson": "={{ { apikey: $env.SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY, Prefer: 'return=representation,resolution=merge-duplicates' } }}",
+        "bodyParametersJson": "={{ { name: $json.name, email: $json.email, phone: $json.phone, message: $json.message, source: $json.source, session_id: $json.session_id, qualified: true, score: $json.score || null, notes: $json.notes || null, created_at: $json.created_at } }}"
+      },
+      "id": "http_07b8a5ee",
+      "name": "Supabase: Upsert Lead (Qualified)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        300,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage'}}",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "timeout": 30000
+        },
+        "bodyParametersJson": "={{ { chat_id: $env.TELEGRAM_CHAT_ID, text: '✅ Qualified Lead: ' + $json.name + ' (' + $json.email + ') Score: ' + ($json.score || 'N/A') } }}"
+      },
+      "id": "http_tele_q",
+      "name": "Telegram: Qualified Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        520,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/leads?on_conflict=email&select=*",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "response": "json",
+          "timeout": 30000
+        },
+        "headerParametersJson": "={{ { apikey: $env.SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY, Prefer: 'return=representation,resolution=merge-duplicates' } }}",
+        "bodyParametersJson": "={{ { name: $json.name, email: $json.email, phone: $json.phone, message: $json.message, source: $json.source, session_id: $json.session_id, qualified: false, score: $json.score || null, notes: $json.notes || null, created_at: $json.created_at } }}"
+      },
+      "id": "http_5a68d9c1",
+      "name": "Supabase: Upsert Lead (Unqualified)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        300,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "business_name", "value": "={{$json.body.business_name}}"},
+            { "name": "industry", "value": "={{$json.body.industry || ''}}"},
+            { "name": "country", "value": "={{$json.body.country || ''}}"},
+            { "name": "preferred_channels", "value": "={{($json.body.preferred_channels || []).join(',')}}"},
+            { "name": "whatsapp_number", "value": "={{$json.body.whatsapp_number || ''}}"},
+            { "name": "telegram_handle", "value": "={{$json.body.telegram_handle || ''}}"},
+            { "name": "website_url", "value": "={{$json.body.website_url || ''}}"},
+            { "name": "use_cases", "value": "={{($json.body.use_cases || []).join(',')}}"},
+            { "name": "required_integrations", "value": "={{($json.body.required_integrations || []).join(',')}}"},
+            { "name": "budget_tier", "value": "={{$json.body.budget_tier || ''}}"},
+            { "name": "timeline", "value": "={{$json.body.timeline || ''}}"},
+            { "name": "voice_pref", "value": "={{$json.body.voice_pref ? JSON.stringify($json.body.voice_pref) : '{}' }}"},
+            { "name": "contact", "value": "={{$json.body.contact ? JSON.stringify($json.body.contact) : '{}' }}"},
+            { "name": "session_id", "value": "={{$json.body.session_id || ''}}"}
+          ],
+          "dateTime": [
+            { "name": "created_at", "value": "={{$now}}"}
+          ]
+        }
+      },
+      "id": "set_intake_7a",
+      "name": "Set: Normalize Intake",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/client_intake?select=*",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "response": "json",
+          "timeout": 30000
+        },
+        "headerParametersJson": "={{ { apikey: $env.SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY, Prefer: 'return=representation' } }}",
+        "bodyParametersJson": "={{ { business_name: $json.business_name, industry: $json.industry, country: $json.country, preferred_channels: $json.preferred_channels.split(',').filter(Boolean), whatsapp_number: $json.whatsapp_number, telegram_handle: $json.telegram_handle, website_url: $json.website_url, use_cases: $json.use_cases.split(',').filter(Boolean), required_integrations: $json.required_integrations.split(',').filter(Boolean), budget_tier: $json.budget_tier, timeline: $json.timeline, voice_pref: JSON.parse($json.voice_pref || '{}'), contact: JSON.parse($json.contact || '{}'), session_id: $json.session_id, created_at: $json.created_at } }}"
+      },
+      "id": "http_intake_save",
+      "name": "Supabase: Save Intake",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -600,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@odiadev.outlook.com",
+        "toEmail": "={{$env.ALERT_EMAIL_TO || 'support@odiadev.outlook.com'}}",
+        "subject": "📝 New Client Intake: {{$json.business_name}}",
+        "text": "Business: {{$json.business_name}}\nChannels: {{$json.preferred_channels}}\nUse cases: {{$json.use_cases}}\nIntegrations: {{$json.required_integrations}}\nBudget: {{$json.budget_tier}}\nTimeline: {{$json.timeline}}\nContact: {{$json.contact}}\nSession: {{$json.session_id}}"
+      },
+      "id": "email_intake",
+      "name": "Email: Intake Summary",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        120
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP - ODIADEV (Outlook)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            { "name": "session_id", "value": "={{$json.body.session_id || ''}}"},
+            { "name": "transcript", "value": "={{$json.body.transcript || ''}}"},
+            { "name": "final_reply", "value": "={{$json.body.final_reply || ''}}"}
+          ],
+          "dateTime": [
+            { "name": "ended_at", "value": "={{$now}}"}
+          ]
+        }
+      },
+      "id": "set_conv_f3",
+      "name": "Set: Conversation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.RENDER_SUMMARY_URL}}",
+        "responseFormat": "json",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "timeout": 25000
+        },
+        "ignoreResponseCode": true,
+        "bodyParametersJson": "={{ { transcript: $json.transcript } }}"
+      },
+      "id": "http_summarize_opt",
+      "name": "HTTP: Summarize (Render, optional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -600,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "passThrough",
+        "output": "input2"
+      },
+      "id": "merge_conv_sum",
+      "name": "Merge: Use Summary If Present",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        -380,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/conversations?select=*",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "response": "json",
+          "timeout": 30000
+        },
+        "headerParametersJson": "={{ { apikey: $env.SUPABASE_SERVICE_ROLE_KEY, Authorization: 'Bearer ' + $env.SUPABASE_SERVICE_ROLE_KEY, Prefer: 'return=representation' } }}",
+        "bodyParametersJson": "={{ { session_id: $json.session_id, final_reply: $json.final_reply, transcript: $json.transcript, summary: $json.summary || null, ended_at: $json.ended_at } }}"
+      },
+      "id": "http_conv_save",
+      "name": "Supabase: Save Conversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -160,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@odiadev.outlook.com",
+        "toEmail": "={{$env.ALERT_EMAIL_TO || 'support@odiadev.outlook.com'}}",
+        "subject": "🗣️ Chat Ended ({{$json.session_id}})",
+        "text": "Session: {{$json.session_id}}\nEnded: {{$json.ended_at}}\nSummary: {{$json.summary || 'N/A'}}\nFinal Reply: {{$json.final_reply}}\nTranscript (first 1500 chars):\n{{ $json.transcript && $json.transcript.substring(0,1500) }}"
+      },
+      "id": "email_conv",
+      "name": "Email: Conversation Summary",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        60,
+        320
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP - ODIADEV (Outlook)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@odiadev.outlook.com",
+        "toEmail": "={{$env.ALERT_EMAIL_TO || 'support@odiadev.outlook.com'}}",
+        "subject": "❌ Widget Error",
+        "text": "Message: {{$json.body.message || 'No message'}}\nSession: {{$json.body.session_id || ''}}\nTime: {{$now}}"
+      },
+      "id": "email_err",
+      "name": "Email: Error Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        520
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP - ODIADEV (Outlook)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{'https://api.telegram.org/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage'}}",
+        "jsonParameters": true,
+        "sendBody": true,
+        "options": {
+          "bodyContentType": "json",
+          "timeout": 30000
+        },
+        "ignoreResponseCode": true,
+        "bodyParametersJson": "={{ { chat_id: $env.TELEGRAM_CHAT_ID, text: '❌ Widget Error: ' + ($json.body.message || 'No message') } }}"
+      },
+      "id": "http_tele_err",
+      "name": "Telegram: Error Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -380,
+        520
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "err_trig",
+      "name": "On Error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@odiadev.outlook.com",
+        "toEmail": "={{$env.ALERT_EMAIL_TO || 'support@odiadev.outlook.com'}}",
+        "subject": "🚨 n8n Node Failed",
+        "text": "Workflow: {{$workflow.name}}\nNode: {{$json.execution.node.name}}\nError: {{$json.execution.error.message}}\nTime: {{$now}}"
+      },
+      "id": "email_fail",
+      "name": "Email: n8n Failure",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        520
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "",
+          "name": "SMTP - ODIADEV (Outlook)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook: Agent Events": {
+      "main": [
+        [
+          { "node": "Switch: Event Type", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Switch: Event Type": {
+      "main": [
+        [
+          { "node": "Set: Normalize Lead", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Set: Normalize Intake", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Set: Conversation", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Email: Error Alert", "type": "main", "index": 0 },
+          { "node": "Telegram: Error Alert", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Set: Normalize Lead": {
+      "main": [
+        [
+          { "node": "HTTP: Qualify (Render)", "type": "main", "index": 0 },
+          { "node": "Merge: Lead + Qualify", "type": "main", "index": 1 }
+        ]
+      ]
+    },
+    "HTTP: Qualify (Render)": {
+      "main": [
+        [
+          { "node": "Merge: Lead + Qualify", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Merge: Lead + Qualify": {
+      "main": [
+        [
+          { "node": "IF: Qualified?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF: Qualified?": {
+      "main": [
+        [
+          { "node": "Email: Qualified Lead", "type": "main", "index": 0 },
+          { "node": "Supabase: Upsert Lead (Qualified)", "type": "main", "index": 0 },
+          { "node": "Telegram: Qualified Alert", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Supabase: Upsert Lead (Unqualified)", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Set: Normalize Intake": {
+      "main": [
+        [
+          { "node": "Supabase: Save Intake", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Supabase: Save Intake": {
+      "main": [
+        [
+          { "node": "Email: Intake Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Set: Conversation": {
+      "main": [
+        [
+          { "node": "HTTP: Summarize (Render, optional)", "type": "main", "index": 0 },
+          { "node": "Merge: Use Summary If Present", "type": "main", "index": 1 }
+        ]
+      ]
+    },
+    "HTTP: Summarize (Render, optional)": {
+      "main": [
+        [
+          { "node": "Merge: Use Summary If Present", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Merge: Use Summary If Present": {
+      "main": [
+        [
+          { "node": "Supabase: Save Conversation", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Supabase: Save Conversation": {
+      "main": [
+        [
+          { "node": "Email: Conversation Summary", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "On Error": {
+      "main": [
+        [
+          { "node": "Email: n8n Failure", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "saveExecutionProgress": true,
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "odia-dev-n8n-cloud",
+    "template": "ODIADEV Chat Backbone v2"
+  },
+  "active": false
+}
