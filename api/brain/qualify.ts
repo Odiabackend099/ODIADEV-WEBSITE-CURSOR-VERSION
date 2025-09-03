@@ -1,6 +1,7 @@
+﻿import { withCors } from './_lib/cors'
 import { VercelRequest, VercelResponse } from '@vercel/node'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function _handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
   try {
     const { name, email, phone, message, source, session_id } = req.body || {}
@@ -34,3 +35,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: 'Failed to qualify lead' })
   }
 }
+
+export default withCors(_handler as any)

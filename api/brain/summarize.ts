@@ -1,6 +1,7 @@
+﻿import { withCors } from './_lib/cors'
 import { VercelRequest, VercelResponse } from '@vercel/node'
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+async function _handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
   try {
     const { transcript } = req.body || {}
@@ -12,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!brainUrl) {
       // Fallback: return first 50 words as "summary"
       const words = String(transcript).split(/\s+/).slice(0, 50).join(' ')
-      return res.json({ summary: words + (String(transcript).split(/\s+/).length > 50 ? '…' : ''), topics: [] })
+      return res.json({ summary: words + (String(transcript).split(/\s+/).length > 50 ? 'â€¦' : ''), topics: [] })
     }
 
     const r = await fetch(`${brainUrl}/api/summarize`, {
@@ -34,3 +35,5 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ error: 'Failed to summarize' })
   }
 }
+
+export default withCors(_handler as any)

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { generateDevSecurityHeaders, getRandomFallbackResponse } from '../config/development'
+import { getRandomFallbackResponse } from '../config/development'
 
 export interface Message {
   id: string
@@ -128,15 +128,14 @@ export const useChatStore = create<ChatState & ChatActions>()(
             voiceId: selectedAvatar?.voiceId,
           }
 
-          // Send to API with security headers
-          const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...generateDevSecurityHeaders(payload),
-            },
-            body: JSON.stringify(payload),
-          })
+                            // Send to API (server will add security headers)
+                  const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                  })
 
           if (!response.ok) {
             throw new Error(`API Error: ${response.status}`)
@@ -201,15 +200,14 @@ export const useChatStore = create<ChatState & ChatActions>()(
             finalReply: messages[messages.length - 1]?.content || '',
           }
 
-          // Send conversation end event with security headers
-          await fetch('/api/events', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...generateDevSecurityHeaders(payload),
-            },
-            body: JSON.stringify(payload),
-          })
+                            // Send conversation end event (server will add security headers)
+                  await fetch('/api/events', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                  })
         } catch (error) {
           console.error('Error ending conversation:', error)
         }
@@ -226,14 +224,13 @@ export const useChatStore = create<ChatState & ChatActions>()(
             ...payload,
           }
 
-          await fetch('/api/events', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...generateDevSecurityHeaders(eventPayload),
-            },
-            body: JSON.stringify(eventPayload),
-          })
+                            await fetch('/api/events', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(eventPayload),
+                  })
         } catch (error) {
           console.error('Error sending event:', error)
         }

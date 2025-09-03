@@ -1,0 +1,131 @@
+{
+  "test_plan": {
+    "project_name": "ODIADEV Website",
+    "test_scope": "frontend",
+    "test_cases": [
+      {
+        "id": "security_001",
+        "name": "CORS Security Test",
+        "description": "Test CORS headers and origin validation",
+        "steps": [
+          "1. Check if CORS headers are properly set",
+          "2. Test with allowed origins (localhost:5173, odia.dev)",
+          "3. Test with disallowed origins",
+          "4. Verify OPTIONS preflight requests"
+        ],
+        "expected_result": "CORS should only allow specified origins"
+      },
+      {
+        "id": "security_002", 
+        "name": "Rate Limiting Test",
+        "description": "Test API rate limiting functionality",
+        "steps": [
+          "1. Send multiple rapid requests to /api/tts",
+          "2. Send multiple rapid requests to /api/events",
+          "3. Verify rate limiting kicks in after threshold",
+          "4. Check rate limit headers in response"
+        ],
+        "expected_result": "Rate limiting should block excessive requests"
+      },
+      {
+        "id": "security_003",
+        "name": "Input Validation Test", 
+        "description": "Test API input validation with Zod",
+        "steps": [
+          "1. Send invalid text length to /api/tts",
+          "2. Send invalid voice_id to /api/tts",
+          "3. Send malformed JSON to APIs",
+          "4. Test XSS prevention in inputs"
+        ],
+        "expected_result": "Invalid inputs should be rejected with proper error messages"
+      },
+      {
+        "id": "security_004",
+        "name": "Webhook Signature Test",
+        "description": "Test webhook signature verification",
+        "steps": [
+          "1. Send request to /api/events without signature headers",
+          "2. Send request with invalid signature",
+          "3. Send request with expired timestamp",
+          "4. Send request with valid signature"
+        ],
+        "expected_result": "Only properly signed requests should be accepted"
+      },
+      {
+        "id": "business_001",
+        "name": "Landing Page Test",
+        "description": "Test landing page functionality and user experience",
+        "steps": [
+          "1. Load homepage and verify all sections render",
+          "2. Test navigation between pages",
+          "3. Verify premium UI components display correctly",
+          "4. Test responsive design on different screen sizes"
+        ],
+        "expected_result": "Landing page should load and function properly"
+      },
+      {
+        "id": "business_002",
+        "name": "Contact Form Test",
+        "description": "Test contact form submission and lead capture",
+        "steps": [
+          "1. Fill out contact form with valid data",
+          "2. Submit form and verify success message",
+          "3. Check if lead event is sent to /api/events",
+          "4. Test form validation with invalid data"
+        ],
+        "expected_result": "Contact form should capture leads and send events"
+      },
+      {
+        "id": "business_003",
+        "name": "Chat Widget Test",
+        "description": "Test floating chat widget functionality",
+        "steps": [
+          "1. Open chat widget and verify it appears",
+          "2. Test avatar selection functionality",
+          "3. Test voice mode toggle",
+          "4. Send text message and verify response",
+          "5. Test conversation persistence across page navigation"
+        ],
+        "expected_result": "Chat widget should function properly with all features"
+      },
+      {
+        "id": "tts_001",
+        "name": "TTS API Key Generation",
+        "description": "Generate real API key for TTS testing",
+        "steps": [
+          "1. Check environment variables for TTS configuration",
+          "2. Generate or retrieve valid API key",
+          "3. Verify API key format and permissions",
+          "4. Test API key authentication"
+        ],
+        "expected_result": "Valid API key should be generated and authenticated"
+      },
+      {
+        "id": "tts_002",
+        "name": "TTS Audio Generation Test",
+        "description": "Test 30-second audio generation via TTS API",
+        "steps": [
+          "1. Send text request to /api/tts with valid API key",
+          "2. Request 30-second audio content",
+          "3. Verify audio is generated and returned as base64",
+          "4. Test audio playback in browser",
+          "5. Test different voice options (Nigerian/US, male/female)"
+        ],
+        "expected_result": "30-second audio should be generated and playable"
+      },
+      {
+        "id": "tts_003",
+        "name": "Voice Integration Test",
+        "description": "Test voice integration in chat widget",
+        "steps": [
+          "1. Enable voice mode in chat widget",
+          "2. Send message and verify audio response",
+          "3. Test auto-play functionality",
+          "4. Test different avatar voice selections",
+          "5. Verify audio quality and timing"
+        ],
+        "expected_result": "Voice integration should work seamlessly in chat"
+      }
+    ]
+  }
+}

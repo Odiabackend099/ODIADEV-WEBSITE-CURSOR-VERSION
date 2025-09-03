@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useChatStore } from '../store/chatStore'
-import { generateDevSecurityHeaders } from '../config/development'
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -29,12 +28,11 @@ const Contact = () => {
         session_id: useChatStore.getState().sessionId,
       }
 
-      // Send lead event with security headers
+      // Send lead event (server will add security headers)
       const response = await fetch('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...generateDevSecurityHeaders(payload),
         },
         body: JSON.stringify(payload),
       })

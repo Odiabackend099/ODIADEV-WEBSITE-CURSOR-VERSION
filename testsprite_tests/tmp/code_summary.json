@@ -1,0 +1,139 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "React",
+    "Vite",
+    "Tailwind CSS",
+    "Zustand",
+    "React Router",
+    "Framer Motion",
+    "GSAP",
+    "Lenis",
+    "Supabase",
+    "Vercel",
+    "Node.js",
+    "Express"
+  ],
+  "features": [
+    {
+      "name": "Floating Chat Widget",
+      "description": "Persistent voice-enabled chat widget with avatar selection, voice mode, and microphone input",
+      "files": [
+        "src/components/chat/FloatingChatWidget.tsx",
+        "src/components/chat/AvatarPicker.tsx",
+        "src/components/chat/VoiceToggle.tsx",
+        "src/components/chat/MicButton.tsx",
+        "src/components/chat/MessageList.tsx",
+        "src/components/chat/Composer.tsx"
+      ]
+    },
+    {
+      "name": "Chat State Management",
+      "description": "Zustand store for managing chat session, messages, voice settings, and avatar selection",
+      "files": [
+        "src/store/chatStore.ts"
+      ]
+    },
+    {
+      "name": "TTS API Integration",
+      "description": "Text-to-speech API proxy with voice selection and audio generation",
+      "files": [
+        "api/tts.ts"
+      ]
+    },
+    {
+      "name": "Chat API",
+      "description": "Chat message processing with TTS integration and canned responses",
+      "files": [
+        "api/chat.ts"
+      ]
+    },
+    {
+      "name": "Event System",
+      "description": "Webhook-based event forwarding to n8n with security headers and rate limiting",
+      "files": [
+        "api/events.ts",
+        "api/_utils/cors.ts",
+        "api/_utils/ratelimit.ts",
+        "api/_utils/sign.ts"
+      ]
+    },
+    {
+      "name": "Brain API Proxies",
+      "description": "Lead qualification and conversation summarization API endpoints",
+      "files": [
+        "api/brain/qualify.ts",
+        "api/brain/summarize.ts"
+      ]
+    },
+    {
+      "name": "Premium UI Components",
+      "description": "High-end UI components with animations and premium styling",
+      "files": [
+        "src/components/ui/PremiumHero.tsx",
+        "src/components/ui/ValueGrid.tsx",
+        "src/components/ui/WhatWeDoSplit.tsx",
+        "src/components/ui/CtaBand.tsx"
+      ]
+    },
+    {
+      "name": "Layout Components",
+      "description": "Navigation and footer components for the website layout",
+      "files": [
+        "src/components/layout/Navbar.tsx",
+        "src/components/layout/Footer.tsx"
+      ]
+    },
+    {
+      "name": "Page Components",
+      "description": "Main website pages including home, pricing, contact, and resources",
+      "files": [
+        "src/pages/Home.tsx",
+        "src/pages/Pricing.tsx",
+        "src/pages/Contact.tsx",
+        "src/pages/Resources.tsx",
+        "src/pages/dashboard/Index.tsx"
+      ]
+    },
+    {
+      "name": "Smooth Scrolling",
+      "description": "Lenis-based smooth scrolling implementation",
+      "files": [
+        "src/App.tsx"
+      ]
+    },
+    {
+      "name": "Security Utilities",
+      "description": "CORS, rate limiting, and webhook signature verification utilities",
+      "files": [
+        "api/_utils/cors.ts",
+        "api/_utils/ratelimit.ts",
+        "api/_utils/sign.ts"
+      ]
+    },
+    {
+      "name": "Database Schema",
+      "description": "Supabase database schema for leads, client intake, and conversations",
+      "files": [
+        "supabase/migrations/001_init.sql"
+      ]
+    },
+    {
+      "name": "Render Brain Service",
+      "description": "Express server for lead qualification and conversation summarization",
+      "files": [
+        "render-brain/server.js",
+        "render-brain/package.json"
+      ]
+    },
+    {
+      "name": "Deployment Configuration",
+      "description": "Vercel deployment configuration with security headers",
+      "files": [
+        "vercel.json",
+        "DEPLOY.md",
+        "SECURITY.md"
+      ]
+    }
+  ]
+}

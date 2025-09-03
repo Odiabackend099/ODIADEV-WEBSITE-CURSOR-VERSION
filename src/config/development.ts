@@ -1,10 +1,10 @@
-// Development configuration for ODIADEV
+﻿// Development configuration for ODIADEV
 // This file provides fallback values for development environment
 
 export const DEV_CONFIG = {
   // Webhook Security (Development)
-  EVENT_INGEST_KEY: 'dev-key-12345',
-  EVENT_INGEST_SECRET: 'dev-secret-67890',
+  EVENT_INGEST_KEY: '',
+  EVENT_INGEST_SECRET: '',
   
   // API Endpoints (Development)
   TTS_API_URL: '/api/tts',

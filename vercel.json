@@ -1,9 +1,25 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "version": 2,
+  "framework": "vite",
   "functions": {
-    "api/**/*": {
-      "runtime": "nodejs18.x"
+    "api/**/*.ts": {
+      "runtime": "nodejs20.x",
+      "memory": 512
     }
-  }
+  },
+  "routes": [
+    { "src": "^/api/(.*)$", "dest": "/api/$1.ts" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Permissions-Policy", "value": "microphone=(), geolocation=()" }
+      ]
+    }
+  ]
 }
