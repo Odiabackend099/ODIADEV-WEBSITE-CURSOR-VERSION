@@ -10,6 +10,10 @@ import Home from './pages/Home'
 import Pricing from './pages/Pricing'
 import Contact from './pages/Contact'
 import Resources from './pages/Resources'
+import About from './pages/About'
+import Careers from './pages/Careers'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 import Dashboard from './pages/dashboard/Index'
 
 function App() {
@@ -41,6 +45,10 @@ function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/resources" element={<Resources />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="/dashboard/*" element={<Dashboard />} />
         </Routes>
       </main>
