@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { getRandomFallbackResponse } from '../config/development'
+import { playDataUrl } from '../lib/audio'
 
 export interface Message {
   id: string
@@ -158,24 +159,31 @@ export const useChatStore = create<ChatState & ChatActions>()(
         })
 
         try {
+          // Prepare messages array for the new chat API
+          const { messages } = get()
+          const messagesArray = [
+            ...messages,
+            { role: 'user', content }
+          ]
+
           const payload = {
-            message: content,
+            messages: messagesArray,
             sessionId,
             voiceId: selectedAvatar?.voiceId,
           }
 
-                            // Send to API (server will add security headers)
-                  const apiUrl = process.env.NODE_ENV === 'development' 
-                    ? 'http://localhost:3001/api/chat' 
-                    : '/api/chat'
-                  
-                  const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                  })
+          // Send to API (server will add security headers)
+          const apiUrl = process.env.NODE_ENV === 'development' 
+            ? 'http://localhost:3001/api/chat' 
+            : '/api/chat'
+          
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          })
 
           if (!response.ok) {
             throw new Error(`API Error: ${response.status}`)
@@ -185,29 +193,40 @@ export const useChatStore = create<ChatState & ChatActions>()(
           
           // Add assistant response
           addMessage({
-            content: data.message,
+            content: data.reply,
             role: 'assistant',
-            audioUrl: data.audioUrl,
           })
 
-          // Auto-play audio if voice mode is on
-          if (isVoiceMode && data.audioUrl) {
-            const { stopCurrentAudio } = get()
-            stopCurrentAudio() // Stop any currently playing audio
-            
-            const audio = new Audio(data.audioUrl)
-            set({ currentAudio: audio, isPlaying: true })
-            
-            audio.onended = () => {
-              set({ currentAudio: null, isPlaying: false })
+          // Generate TTS for the response if voice mode is on
+          if (isVoiceMode && data.reply) {
+            try {
+              const ttsUrl = process.env.NODE_ENV === 'development' 
+                ? 'http://localhost:3001/api/tts' 
+                : '/api/tts'
+              
+              const ttsResponse = await fetch(ttsUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  text: data.reply,
+                  voice_id: selectedAvatar?.voiceId || 'naija_female_warm'
+                }),
+              })
+
+              if (ttsResponse.ok) {
+                const ttsData = await ttsResponse.json()
+                if (ttsData.audioUrl) {
+                  // Use the audio utility for reliable playback
+                  playDataUrl(ttsData.audioUrl).catch(console.error)
+                }
+              }
+            } catch (ttsError) {
+              console.error('TTS Error:', ttsError)
             }
-            
-            audio.onerror = () => {
-              set({ currentAudio: null, isPlaying: false })
-            }
-            
-            audio.play().catch(console.error)
           }
+
         } catch (error) {
           console.error('Error sending message:', error)
           

@@ -17,20 +17,28 @@ app.use(express.json())
 app.post('/api/chat', (req, res) => {
   console.log('Chat API called:', req.body)
   
-  // Mock response
-  const responses = [
-    "Hello! I'm ODIADEV's voice assistant. How can I help you today?",
-    "Welcome to ODIADEV! I can help you with WhatsApp, Telegram, or Web voice agents.",
-    "Great to meet you! What kind of voice AI solution are you looking for?",
-    "I'm here to help you build amazing voice experiences. What's your use case?"
-  ]
+  const { messages } = req.body;
+  const lastMessage = messages && messages.length > 0 ? messages[messages.length - 1] : null;
   
-  const randomResponse = responses[Math.floor(Math.random() * responses.length)]
+  // Simple response based on last message
+  let reply = "Hello! I'm ODIADEV's voice assistant. How can I help you today?";
+  
+  if (lastMessage && lastMessage.content) {
+    const content = lastMessage.content.toLowerCase();
+    if (content.includes('hello') || content.includes('hi')) {
+      reply = "Hello! Welcome to ODIADEV. I'm here to help you with voice AI solutions.";
+    } else if (content.includes('voice') || content.includes('ai')) {
+      reply = "Great! ODIADEV specializes in voice AI agents for WhatsApp, Telegram, and web platforms.";
+    } else if (content.includes('demo') || content.includes('test')) {
+      reply = "I'd be happy to help you test our voice capabilities. Try speaking into the microphone!";
+    } else {
+      reply = `I understand you're asking about "${lastMessage.content}". Let me help you with that.`;
+    }
+  }
   
   res.json({
-    message: randomResponse,
-    audioUrl: `data:audio/mpeg;base64,${Buffer.from('mock-audio-data').toString('base64')}`
-  })
+    reply: reply
+  });
 })
 
 app.post('/api/events', (req, res) => {
@@ -53,6 +61,20 @@ app.post('/api/tts', (req, res) => {
   
   res.json({
     audioUrl: `data:audio/mpeg;base64,${mockAudio}`
+  })
+})
+
+// Mock STT API
+app.post('/api/stt', (req, res) => {
+  console.log('STT API called:', req.body)
+  
+  const { audioBase64, mimeType } = req.body
+  
+  // Mock transcription response
+  const mockTranscription = "Hello, this is a mock transcription from the development server"
+  
+  res.json({
+    text: mockTranscription
   })
 })
 
