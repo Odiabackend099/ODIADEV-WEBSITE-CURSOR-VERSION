@@ -1,131 +1,411 @@
-{
-  "test_plan": {
-    "project_name": "ODIADEV Website",
-    "test_scope": "frontend",
-    "test_cases": [
+[
+  {
+    "id": "TC001",
+    "title": "Widget Initial Load and Voice Consent Prompt",
+    "description": "Verify that on first visit, the widget loads collapsed with 'Enable voice' chip and prompts user for microphone permission upon tap.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
       {
-        "id": "security_001",
-        "name": "CORS Security Test",
-        "description": "Test CORS headers and origin validation",
-        "steps": [
-          "1. Check if CORS headers are properly set",
-          "2. Test with allowed origins (localhost:5173, odia.dev)",
-          "3. Test with disallowed origins",
-          "4. Verify OPTIONS preflight requests"
-        ],
-        "expected_result": "CORS should only allow specified origins"
+        "type": "action",
+        "description": "Navigate to a page with the embedded widget on a fresh browser session with no prior consent"
       },
       {
-        "id": "security_002", 
-        "name": "Rate Limiting Test",
-        "description": "Test API rate limiting functionality",
-        "steps": [
-          "1. Send multiple rapid requests to /api/tts",
-          "2. Send multiple rapid requests to /api/events",
-          "3. Verify rate limiting kicks in after threshold",
-          "4. Check rate limit headers in response"
-        ],
-        "expected_result": "Rate limiting should block excessive requests"
+        "type": "assertion",
+        "description": "Check that the widget renders collapsed with a visible and clickable 'Enable voice' chip"
       },
       {
-        "id": "security_003",
-        "name": "Input Validation Test", 
-        "description": "Test API input validation with Zod",
-        "steps": [
-          "1. Send invalid text length to /api/tts",
-          "2. Send invalid voice_id to /api/tts",
-          "3. Send malformed JSON to APIs",
-          "4. Test XSS prevention in inputs"
-        ],
-        "expected_result": "Invalid inputs should be rejected with proper error messages"
+        "type": "action",
+        "description": "User taps the 'Enable voice' chip"
       },
       {
-        "id": "security_004",
-        "name": "Webhook Signature Test",
-        "description": "Test webhook signature verification",
-        "steps": [
-          "1. Send request to /api/events without signature headers",
-          "2. Send request with invalid signature",
-          "3. Send request with expired timestamp",
-          "4. Send request with valid signature"
-        ],
-        "expected_result": "Only properly signed requests should be accepted"
+        "type": "assertion",
+        "description": "Verify that the browser prompts for microphone permission"
       },
       {
-        "id": "business_001",
-        "name": "Landing Page Test",
-        "description": "Test landing page functionality and user experience",
-        "steps": [
-          "1. Load homepage and verify all sections render",
-          "2. Test navigation between pages",
-          "3. Verify premium UI components display correctly",
-          "4. Test responsive design on different screen sizes"
-        ],
-        "expected_result": "Landing page should load and function properly"
+        "type": "action",
+        "description": "Grant microphone permission"
       },
       {
-        "id": "business_002",
-        "name": "Contact Form Test",
-        "description": "Test contact form submission and lead capture",
-        "steps": [
-          "1. Fill out contact form with valid data",
-          "2. Submit form and verify success message",
-          "3. Check if lead event is sent to /api/events",
-          "4. Test form validation with invalid data"
-        ],
-        "expected_result": "Contact form should capture leads and send events"
+        "type": "assertion",
+        "description": "Confirm that continuous voice listening starts and an assistant greeting message is displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Conversational Onboarding Flow Completion",
+    "description": "Verify that the multi-step voice/text onboarding captures user name, email, phone, and business use case, validates inputs, auto-advances steps, and submits lead data successfully.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Start the onboarding by interacting with the widget after voice permission is granted"
       },
       {
-        "id": "business_003",
-        "name": "Chat Widget Test",
-        "description": "Test floating chat widget functionality",
-        "steps": [
-          "1. Open chat widget and verify it appears",
-          "2. Test avatar selection functionality",
-          "3. Test voice mode toggle",
-          "4. Send text message and verify response",
-          "5. Test conversation persistence across page navigation"
-        ],
-        "expected_result": "Chat widget should function properly with all features"
+        "type": "action",
+        "description": "Provide valid name input via voice or text"
       },
       {
-        "id": "tts_001",
-        "name": "TTS API Key Generation",
-        "description": "Generate real API key for TTS testing",
-        "steps": [
-          "1. Check environment variables for TTS configuration",
-          "2. Generate or retrieve valid API key",
-          "3. Verify API key format and permissions",
-          "4. Test API key authentication"
-        ],
-        "expected_result": "Valid API key should be generated and authenticated"
+        "type": "assertion",
+        "description": "Step auto-advances to requesting email input with validation"
       },
       {
-        "id": "tts_002",
-        "name": "TTS Audio Generation Test",
-        "description": "Test 30-second audio generation via TTS API",
-        "steps": [
-          "1. Send text request to /api/tts with valid API key",
-          "2. Request 30-second audio content",
-          "3. Verify audio is generated and returned as base64",
-          "4. Test audio playback in browser",
-          "5. Test different voice options (Nigerian/US, male/female)"
-        ],
-        "expected_result": "30-second audio should be generated and playable"
+        "type": "action",
+        "description": "Enter a properly formatted email"
       },
       {
-        "id": "tts_003",
-        "name": "Voice Integration Test",
-        "description": "Test voice integration in chat widget",
-        "steps": [
-          "1. Enable voice mode in chat widget",
-          "2. Send message and verify audio response",
-          "3. Test auto-play functionality",
-          "4. Test different avatar voice selections",
-          "5. Verify audio quality and timing"
-        ],
-        "expected_result": "Voice integration should work seamlessly in chat"
+        "type": "assertion",
+        "description": "Proceed to phone number input step with validation"
+      },
+      {
+        "type": "action",
+        "description": "Provide a valid phone number"
+      },
+      {
+        "type": "assertion",
+        "description": "Advance to business use case selection step"
+      },
+      {
+        "type": "action",
+        "description": "Select or state a valid business use case via voice or text"
+      },
+      {
+        "type": "assertion",
+        "description": "Lead data is posted to the backend successfully and a response {ok:true} is received"
+      },
+      {
+        "type": "assertion",
+        "description": "Analytics events for lead capture and onboarding flow are triggered"
+      },
+      {
+        "type": "assertion",
+        "description": "Onboarding completes showing CTAs for signup, demo booking, and human contact"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Return Visit Personalized Experience",
+    "description": "Verify that a returning user with previous consent and profile data is greeted personally and the widget interaction resumes without requesting mic permission again.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Visit the site with the widget on a browser with prior granted mic permission and saved user profile"
+      },
+      {
+        "type": "assertion",
+        "description": "Widget loads with personalized greeting addressing saved user name"
+      },
+      {
+        "type": "assertion",
+        "description": "No prompt for microphone permission is shown"
+      },
+      {
+        "type": "action",
+        "description": "Interact with the assistant via voice or text"
+      },
+      {
+        "type": "assertion",
+        "description": "Assistant responds appropriately continuing session"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Voice Activity Detection and Auto-send on Silence",
+    "description": "Verify that after explicit mic consent, the widget continuously listens and automatically sends user input after detecting silence via voice activity detection.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Grant microphone access and start speaking a message into the widget"
+      },
+      {
+        "type": "assertion",
+        "description": "Widget continuously listens while user is speaking"
+      },
+      {
+        "type": "action",
+        "description": "Stop speaking and remain silent"
+      },
+      {
+        "type": "assertion",
+        "description": "Voice activity detection detects silence and auto-submits the message"
+      },
+      {
+        "type": "assertion",
+        "description": "Assistant responds appropriately to the sent message"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Barge-in Interruption Handling",
+    "description": "Verify that user speech interrupts ongoing TTS playback and captures new input without loss.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger assistant to play a TTS response"
+      },
+      {
+        "type": "assertion",
+        "description": "TTS audio plays with Nigerian English voice successfully"
+      },
+      {
+        "type": "action",
+        "description": "User begins speaking to interrupt the TTS playback"
+      },
+      {
+        "type": "assertion",
+        "description": "TTS playback stops immediately upon user speech detection"
+      },
+      {
+        "type": "assertion",
+        "description": "User's new input is captured and processed without data loss"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Offline Mode Queuing and Background Sync",
+    "description": "Verify that when offline status is detected, user chat and lead submissions are queued and retried automatically when connectivity is restored using background sync.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate offline mode or disable network connectivity"
+      },
+      {
+        "type": "action",
+        "description": "Submit a chat message and complete onboarding lead form"
+      },
+      {
+        "type": "assertion",
+        "description": "Widget shows offline status message and queues requests locally"
+      },
+      {
+        "type": "action",
+        "description": "Restore network connectivity"
+      },
+      {
+        "type": "assertion",
+        "description": "Background sync retries queued chat and lead submissions successfully"
+      },
+      {
+        "type": "assertion",
+        "description": "User receives assistant responses confirming message processing"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "API Proxy Endpoint Security and Rate Limiting",
+    "description": "Validate that the server-side proxy API enforces domain allowlist, rate limits requests, and returns 429 status on quota exhaustion.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Make API requests to proxy endpoints from an allowed domain within quota"
+      },
+      {
+        "type": "assertion",
+        "description": "Requests succeed with expected responses"
+      },
+      {
+        "type": "action",
+        "description": "Make API requests from a disallowed domain"
+      },
+      {
+        "type": "assertion",
+        "description": "Requests are blocked with appropriate CORS error"
+      },
+      {
+        "type": "action",
+        "description": "Exceed the allowed request quota by sending rapid repeated requests"
+      },
+      {
+        "type": "assertion",
+        "description": "Server returns HTTP 429 Too Many Requests responses"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Health Check and Voices Endpoint Validation",
+    "description": "Verify that /healthz returns {ok:true} within 200ms and /api/voices returns the expected Nigerian English voice options including 'naija_female'.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send a GET request to /healthz endpoint"
+      },
+      {
+        "type": "assertion",
+        "description": "Response body is {ok:true} and response time is under 200ms"
+      },
+      {
+        "type": "action",
+        "description": "Send a GET request to /api/voices endpoint"
+      },
+      {
+        "type": "assertion",
+        "description": "Response includes Nigerian English voice options including an entry for 'naija_female'"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "TTS API Audio Stream Response",
+    "description": "Validate that the /api/tts endpoint returns a valid audio/mpeg stream when provided with text input and handles toggling sound playback.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Send a TTS request with sample text to /api/tts endpoint"
+      },
+      {
+        "type": "assertion",
+        "description": "Response has content type audio/mpeg with valid audio stream data"
+      },
+      {
+        "type": "action",
+        "description": "Toggle sound on/off in the widget UI during TTS playback"
+      },
+      {
+        "type": "assertion",
+        "description": "Sound plays/pauses accordingly without errors"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Accessibility Compliance Verification",
+    "description": "Ensure that the widget UI meets WCAG AA standards including keyboard navigation, ARIA labels, and captions toggle.",
+    "category": "ui",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate the widget interface entirely using keyboard only"
+      },
+      {
+        "type": "assertion",
+        "description": "All interactive elements can be reached and operated via keyboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all actionable elements have proper ARIA labels or roles"
+      },
+      {
+        "type": "action",
+        "description": "Toggle captions during TTS playback"
+      },
+      {
+        "type": "assertion",
+        "description": "Captions display correctly and sync with audio"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Privacy and Data Handling Compliance",
+    "description": "Verify that the widget limits PII storage to required fields, anonymizes logs including IP addresses, and sanitizes inputs with profanity filters.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Complete onboarding providing name, email, phone, and business use case with some profane words in text input"
+      },
+      {
+        "type": "assertion",
+        "description": "Profane words are sanitized or rejected by input validation"
+      },
+      {
+        "type": "action",
+        "description": "Access backend logs related to the session"
+      },
+      {
+        "type": "assertion",
+        "description": "Logs do not contain raw PII or IP addresses, only anonymized or hashed data"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Widget Performance and Bundle Size",
+    "description": "Confirm that widget initial main thread work is under 200ms, bundle size is under 80KB gzipped, and PWA Lighthouse scores for performance and compliance are >= 90.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Load a page with the embedded widget in a low-to-mid range Android device emulator"
+      },
+      {
+        "type": "assertion",
+        "description": "Measure main thread work during initial load is under 200ms"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the widget JS bundle size is under 80KB gzipped"
+      },
+      {
+        "type": "action",
+        "description": "Run Lighthouse PWA audit on the page with the widget"
+      },
+      {
+        "type": "assertion",
+        "description": "Performance and PWA compliance scores are equal or above 90"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Admin API Key Issuance and Revocation with Audit Logging",
+    "description": "Verify that admin API can securely issue and revoke public site keys with domain and quota restrictions, with audit logs recorded and correct security headers set.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Using admin credentials, issue a new public API key bound to a specified domain and quota"
+      },
+      {
+        "type": "assertion",
+        "description": "Public API key is returned with correct domain and quota settings"
+      },
+      {
+        "type": "action",
+        "description": "Revoke the issued public API key"
+      },
+      {
+        "type": "assertion",
+        "description": "Key becomes invalid and no longer accepted by proxy API"
+      },
+      {
+        "type": "action",
+        "description": "Retrieve audit logs"
+      },
+      {
+        "type": "assertion",
+        "description": "Audit logs include issuance and revocation events with timestamps and admin user IDs"
+      },
+      {
+        "type": "assertion",
+        "description": "Admin API responses include proper security headers to prevent leakage or misuse"
       }
     ]
   }
-}
+]

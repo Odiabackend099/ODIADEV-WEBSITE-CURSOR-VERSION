@@ -1,74 +1,78 @@
 {
   "tech_stack": [
     "TypeScript",
-    "React",
+    "React 18",
     "Vite",
     "Tailwind CSS",
     "Zustand",
-    "React Router",
     "Framer Motion",
     "GSAP",
     "Lenis",
+    "React Router",
     "Supabase",
-    "Vercel",
+    "Vercel API Routes",
     "Node.js",
-    "Express"
+    "Express",
+    "Zod",
+    "Axios"
   ],
   "features": [
     {
-      "name": "Floating Chat Widget",
-      "description": "Persistent voice-enabled chat widget with avatar selection, voice mode, and microphone input",
+      "name": "Premium Voice AI Website",
+      "description": "Main website with IEQ-style premium design, responsive layout, and smooth animations",
       "files": [
-        "src/components/chat/FloatingChatWidget.tsx",
-        "src/components/chat/AvatarPicker.tsx",
-        "src/components/chat/VoiceToggle.tsx",
-        "src/components/chat/MicButton.tsx",
-        "src/components/chat/MessageList.tsx",
-        "src/components/chat/Composer.tsx"
+        "src/App.tsx",
+        "src/main.tsx",
+        "src/index.css",
+        "src/pages/Home.tsx",
+        "src/pages/Pricing.tsx",
+        "src/pages/Resources.tsx"
       ]
     },
     {
-      "name": "Chat State Management",
-      "description": "Zustand store for managing chat session, messages, voice settings, and avatar selection",
+      "name": "Floating Chat Widget",
+      "description": "Persistent floating chat widget with voice capabilities, avatar selection, and session persistence",
+      "files": [
+        "src/components/chat/FloatingChatWidget.tsx",
+        "src/components/chat/AvatarPicker.tsx",
+        "src/components/chat/MessageList.tsx",
+        "src/components/chat/Composer.tsx",
+        "src/components/chat/VoiceToggle.tsx",
+        "src/components/chat/MicButton.tsx"
+      ]
+    },
+    {
+      "name": "CRM Dashboard",
+      "description": "Complete CRM dashboard with leads management, conversation tracking, and analytics",
+      "files": [
+        "src/pages/dashboard/Index.tsx"
+      ]
+    },
+    {
+      "name": "Contact Form & Lead Capture",
+      "description": "Contact form with lead capture functionality and security headers",
+      "files": [
+        "src/pages/Contact.tsx"
+      ]
+    },
+    {
+      "name": "State Management",
+      "description": "Zustand-based state management with localStorage persistence for chat sessions",
       "files": [
         "src/store/chatStore.ts"
       ]
     },
     {
-      "name": "TTS API Integration",
-      "description": "Text-to-speech API proxy with voice selection and audio generation",
+      "name": "Layout Components",
+      "description": "Navigation and footer components with responsive design",
       "files": [
-        "api/tts.ts"
+        "src/components/layout/Navbar.tsx",
+        "src/components/layout/Footer.tsx"
       ]
     },
     {
-      "name": "Chat API",
-      "description": "Chat message processing with TTS integration and canned responses",
-      "files": [
-        "api/chat.ts"
-      ]
-    },
-    {
-      "name": "Event System",
-      "description": "Webhook-based event forwarding to n8n with security headers and rate limiting",
-      "files": [
-        "api/events.ts",
-        "api/_utils/cors.ts",
-        "api/_utils/ratelimit.ts",
-        "api/_utils/sign.ts"
-      ]
-    },
-    {
-      "name": "Brain API Proxies",
-      "description": "Lead qualification and conversation summarization API endpoints",
-      "files": [
-        "api/brain/qualify.ts",
-        "api/brain/summarize.ts"
-      ]
-    },
-    {
-      "name": "Premium UI Components",
-      "description": "High-end UI components with animations and premium styling",
+      "name": "UI Components",
+      "description": "Premium UI components with animations and responsive design",
       "files": [
         "src/components/ui/PremiumHero.tsx",
         "src/components/ui/ValueGrid.tsx",
@@ -77,62 +81,82 @@
       ]
     },
     {
-      "name": "Layout Components",
-      "description": "Navigation and footer components for the website layout",
+      "name": "TTS API Integration",
+      "description": "Text-to-Speech API integration with multiple voice options",
       "files": [
-        "src/components/layout/Navbar.tsx",
-        "src/components/layout/Footer.tsx"
+        "api/tts.ts"
       ]
     },
     {
-      "name": "Page Components",
-      "description": "Main website pages including home, pricing, contact, and resources",
+      "name": "Chat API",
+      "description": "Chat API endpoint for AI conversation handling",
       "files": [
-        "src/pages/Home.tsx",
-        "src/pages/Pricing.tsx",
-        "src/pages/Contact.tsx",
-        "src/pages/Resources.tsx",
-        "src/pages/dashboard/Index.tsx"
+        "api/chat.ts"
       ]
     },
     {
-      "name": "Smooth Scrolling",
-      "description": "Lenis-based smooth scrolling implementation",
+      "name": "Events API",
+      "description": "Events API for lead capture, conversation tracking, and webhook integration",
       "files": [
-        "src/App.tsx"
+        "api/events.ts"
       ]
     },
     {
-      "name": "Security Utilities",
-      "description": "CORS, rate limiting, and webhook signature verification utilities",
+      "name": "Brain Services",
+      "description": "AI brain services for lead qualification and conversation summarization",
       "files": [
-        "api/_utils/cors.ts",
-        "api/_utils/ratelimit.ts",
-        "api/_utils/sign.ts"
+        "api/brain/qualify.ts",
+        "api/brain/summarize.ts"
       ]
     },
     {
-      "name": "Database Schema",
-      "description": "Supabase database schema for leads, client intake, and conversations",
+      "name": "Security & CORS",
+      "description": "Security utilities for CORS handling, HMAC signatures, and rate limiting",
       "files": [
-        "supabase/migrations/001_init.sql"
+        "api/_lib/cors.ts",
+        "api/_lib/sign.ts"
       ]
     },
     {
-      "name": "Render Brain Service",
-      "description": "Express server for lead qualification and conversation summarization",
+      "name": "Development Configuration",
+      "description": "Development configuration with fallback responses and environment setup",
+      "files": [
+        "src/config/development.ts"
+      ]
+    },
+    {
+      "name": "Render Backend Service",
+      "description": "Express.js backend service for AI processing and qualification",
       "files": [
         "render-brain/server.js",
         "render-brain/package.json"
       ]
     },
     {
-      "name": "Deployment Configuration",
-      "description": "Vercel deployment configuration with security headers",
+      "name": "Database Schema",
+      "description": "Supabase database schema for leads, intake, and conversations",
+      "files": [
+        "supabase/migrations/001_init.sql",
+        "supabase/migrations/001_initial_schema.sql"
+      ]
+    },
+    {
+      "name": "Automation Workflow",
+      "description": "n8n automation workflow for event processing and notifications",
+      "files": [
+        "n8n-workflow.json"
+      ]
+    },
+    {
+      "name": "Build & Deployment",
+      "description": "Build configuration, deployment settings, and environment management",
       "files": [
         "vercel.json",
-        "DEPLOY.md",
-        "SECURITY.md"
+        "vite.config.ts",
+        "tailwind.config.js",
+        "tsconfig.json",
+        "package.json",
+        ".env.example"
       ]
     }
   ]

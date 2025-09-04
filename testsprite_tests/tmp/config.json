@@ -1,0 +1,16 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5174",
+  "executionArgs": {
+    "projectName": "ODIADEV-WEBSITE-CURSOR-VERSION",
+    "projectPath": "C:\\Users\\OD~IA\\Desktop\\Odiadev-2025\\projects\\ODIAWEB CIURSOR VERSION",
+    "testIds": [],
+    "additionalInstruction": "Comprehensive testing of the ODIADEV website including: 1) Fix all vercel.json deployment issues, 2) Test all frontend functionality including chat widget, dashboard, contact forms, 3) Verify API endpoints work correctly, 4) Test responsive design, 5) Ensure all security features are working, 6) Generate production-ready deployment configuration, 7) Test voice integration and TTS functionality, 8) Verify all animations and UI components work properly, 9) Test error handling and fallbacks, 10) Ensure the website is 100% ready for production deployment to Vercel",
+    "envs": {
+      "API_KEY": "sk-user-3A5p5rTK3rGjmtstpupqjwEvx6AL2Ks5HEVp4vlzeOEIQ2Gdcv8I2K0TdZSoLLHbG2FXul7pOwgk3wBOAMIahob13MTbiG84pZO5pd4U0l0msZfhmDvp6UmuhRw63FpjBzQ"
+    }
+  },
+  "proxy": "http://ac766eb9-0f27-473b-bba3-f49152de267b:z7K4oquN6MU1b3ipeMrJQnbkRnJQe4xf@tun.testsprite.com:8080"
+}

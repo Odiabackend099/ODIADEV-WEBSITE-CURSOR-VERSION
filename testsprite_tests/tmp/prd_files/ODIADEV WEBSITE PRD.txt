@@ -1,0 +1,405 @@
+ODIADEV Assistant — Product Requirements Document (PRD)
+
+Last updated: today
+
+1) Purpose & Vision
+
+Purpose: Turn every ODIADEV site into a voice-first, lead-capturing, PWA-fast experience using our in-house TTS and a server-side proxy (no secrets in the browser).
+
+Vision: A single embeddable ODIADEV Assistant that:
+
+converses via text + voice (continuous listening after one explicit user consent),
+
+guides users through onboarding → signup → payment/trial,
+
+runs great on mobile data in Nigeria (PWA, small payloads, resilient),
+
+is easy to drop into Lovable (React + Vite) sites with one <script>.
+
+2) Target Users & Core Use Cases
+
+Primary users
+
+Visitors to ODIADEV product/landing pages on low-to-mid Android devices.
+
+Internal ODIADEV teams embedding the assistant across multiple sites.
+
+Core use cases
+
+Ask questions about products, pricing, availability.
+
+Voice-led onboarding (name → email → phone → business use case).
+
+Lead capture + “Book a demo” + “Start free credit” CTA.
+
+Answer FAQs; escalate to human; collect feedback.
+
+3) Success Metrics (weekly)
+
+Revenue: ≥ $200/week.
+
+Leads: ≥ 100 qualified leads/week (form completed or voice-confirmed).
+
+Latency: TTS first audio < 1.5s p50; overall response < 2.5s p50.
+
+PWA Lighthouse: Performance ≥ 90, PWA ≥ 90 on mid-range Android.
+
+Widget adoption: ≥ 3 ODIADEV properties live with the assistant.
+
+4) Scope (MVP)
+
+In scope
+
+Embeddable web component chat widget (UMD; < 80KB gzipped target).
+
+Continuous listening after consent; VAD (voice activity detection) for auto-send on silence.
+
+Server proxy: /api/chat, /api/tts, /api/voices, /api/lead, /api/signup.
+
+Admin: issue/revoke public site keys (domain-locked), basic quotas.
+
+PWA: manifest, SW caching (shell + fonts), installable, offline basic.
+
+Security: CORS allowlist, rate limits, HSTS, input validation, audit logs.
+
+Analytics hooks: page + widget events (ready, consent, chat_sent, lead_submitted, signup_started/completed, tts_ms).
+
+Out of scope (MVP)
+
+Multi-language beyond English/Nigerian voices (can be roadmap).
+
+Payments UI (we’ll point to Stripe/Flutterwave checkout URL you provide).
+
+Advanced CRM sync (basic webhook only for MVP).
+
+5) System Overview
+
+Components
+
+Widget (client UMD): <odiadev-chat api="https://proxy" project="landing">
+
+UI, mic control, VAD, audio playback, state machine, analytics events.
+
+Proxy server (Render): hides upstream key, enforces CORS/rate limits.
+
+Routes: /healthz, /api/voices, /api/tts, /api/chat, /api/lead, /api/signup.
+
+In-house TTS (existing): http://13.244.179.175/v1/tts, X-API-Key.
+
+LLM/Logic: simple intent+slot filling (local rules or external LLM endpoint).
+
+Admin key console: issue/revoke keys (public, domain-bound).
+
+6) User Flows (high level)
+A) First visit (mobile)
+
+Page loads (PWA shell cached; fonts cached).
+
+Widget renders collapsed with “Enable voice” chip (browser requires explicit mic consent).
+Once tapped, continuous listening begins.
+
+Assistant greets (text + optional TTS if “Enable sound” was also toggled).
+
+B) Conversational onboarding
+
+States: greet → capture name → email → phone → use case → confirm.
+
+Each step validates; on silence (1.2–1.8s) or “I’m done” → advance.
+
+On success → POST /api/lead → show CTA(s):
+
+Start free credit → /api/signup (returns account link/next steps),
+
+Book demo → link or embedded schedule,
+
+Talk to human → email/WhatsApp link.
+
+C) Return visit
+
+Widget remembers consent and limited profile in local storage (no secrets).
+
+Assistant resumes with short personalized greeting.
+
+D) Offline
+
+Widget shows “You’re offline. I can queue your question; I’ll answer when back online.”
+
+Uses Background Sync (where supported) to retry /api/chat and /api/lead.
+
+7) Functional Requirements
+7.1 Widget (web component)
+
+Embedding
+
+<script defer src="https://cdn.yourdomain/odiadev-widget.umd.js"></script>
+<odiadev-chat
+  api="https://proxy.odia.dev"
+  project="homepage"
+  theme="light"  <!-- optional -->
+  allow-voice="true"
+></odiadev-chat>
+
+
+Attributes
+
+api (required): proxy base URL.
+
+project (string): used for analytics/segmentation.
+
+theme: light | dark (optional).
+
+allow-voice: true|false (default true).
+
+Behavior
+
+Continuous listening (after explicit consent):
+
+mic permission prompt → VAD detects end-of-utterance (threshold + min words) → auto send.
+
+Barge-in: speaking interrupts TTS playback and captures new input.
+
+TTS: /api/tts with voice="naija_female" default; toggle “Enable sound” once to satisfy autoplay policies.
+
+Accessibility: all actions keyboardable; ARIA labels; captions toggle (display transcribed text).
+
+Size budget: UMD bundle ≤ 80KB gzipped; no heavy frameworks beyond browser APIs.
+
+Events (for analytics)
+
+odiadev:ready, :consent_granted, :chat_sent, :reply_received, :tts_start, :tts_end, :lead_submitted, :signup_started, :signup_completed, :error.
+
+7.2 Proxy API (server)
+
+Headers (general)
+
+CORS allowlist via ALLOWED_ORIGINS.
+
+Rate limit: 60 req/min/IP; burst 10.
+
+Routes
+
+GET /healthz → { ok: true } (≤ 200ms).
+
+GET /api/voices → { voices: ["naija_female","naija_male"] }.
+
+POST /api/tts
+Req: { text, voice?, format? }
+Res: audio/mpeg (stream); 400 on invalid input; 5xx with detail if upstream fails.
+
+POST /api/chat
+Req: { text, project, context? }
+Res: { text, intent?, slots? } (simple rule/LLM).
+
+POST /api/lead
+Req: { name, email, phone, useCase, project, utm? }
+Side-effects: webhook (CRM/email), store minimal log.
+Res: { ok:true, leadId }.
+
+POST /api/signup
+Req: { email, plan, project }
+Res: { ok:true, redirectUrl } (to checkout/signup UI you provide).
+
+Admin
+
+POST /api/admin/keys/issue → { apiKey, prefix }.
+
+GET /api/admin/keys/list → non-sensitive fields only.
+
+POST /api/admin/keys/revoke → { ok:true }.
+Auth: Authorization: Bearer <ADMIN_TOKEN>.
+
+Security
+
+All upstream calls use secret ODIADEV_API_KEY (server only).
+
+Input validation/sanitization for text fields; basic profanity/abuse filter (denylist).
+
+HSTS, no x-powered-by, JSON limits (1MB).
+
+Audit logs (issue/revoke; 4xx/5xx, IP masked).
+
+7.3 Conversational Brain (MVP)
+
+Persona: helpful, concise, Nigerian context; name “ODIADEV Assistant”.
+
+NLU (rules + optional LLM):
+
+Intents: greeting, pricing, features, lead_capture, signup, book_demo, escalate.
+
+Slots: name, email, phone, company/use case.
+
+Policies:
+
+Always clarify before moving to signup.
+
+If user says “call me later” → collect preferred time → save in lead.
+
+Content safety: avoid storing sensitive PII beyond captured lead fields; redact before logs.
+
+8) Non-Functional Requirements
+
+Performance:
+
+p50 TTS start < 1.5s (Lagos users), p90 < 2.5s.
+
+Widget init ≤ 200ms main-thread on mid-range Android.
+
+Reliability: 99.9% monthly uptime target on the proxy.
+
+PWA: installable, icon set, offline page, background sync for lead/chat.
+
+Accessibility: WCAG AA for widget UI.
+
+Privacy: email/phone used only for follow-up; link to Privacy/Terms.
+
+9) Monetization & Funnel (MVP)
+
+Assistant CTA: “Start your free credit” (copy configurable).
+
+/api/signup returns redirectUrl to Stripe/Flutterwave or your internal signup.
+
+Post-signup: return to site with ?signup=success; assistant welcomes + suggests first action.
+
+Tracking: signup_started, signup_completed, payment_succeeded events forward to analytics.
+
+10) Acceptance Criteria (map to tests)
+
+Health: GET /healthz returns {ok:true} under 200ms.
+
+Voices: GET /api/voices includes naija_female.
+
+TTS: POST /api/tts returns audio/mpeg for "Hello".
+
+Consent: First use shows mic prompt; after grant, continuous listening works.
+
+VAD: Speaking then pausing 1–2s auto-sends; no premature cuts on brief pauses.
+
+Barge-in: Speaking during TTS pauses playback and records new query.
+
+Lead: Completing onboarding hits /api/lead and returns { ok:true }.
+
+CORS: Only allowed origins can call APIs; others get blocked.
+
+Rate limit: >60 req/min/IP → 429.
+
+Brand: No “Lexie” string; shows “ODIADEV Assistant”.
+
+Lighthouse: Performance & PWA ≥ 90 (mobile).
+
+11) Testing Plan
+
+Unit: widget utils (VAD thresholds, text sanitization), server validators.
+
+Integration: proxy → upstream TTS happy path + 4xx/5xx.
+
+E2E (Playwright):
+
+Load page, grant mic, say “My name is Ada” → assistant confirms.
+
+Complete lead; verify server received payload & analytics fired.
+
+Stress test 65 calls/min to verify 429.
+
+Synthetic monitoring: uptime ping /healthz every minute from Lagos region.
+
+Load: 100 concurrent TTS calls with sample 120-char text; monitor p50/p90.
+
+12) Security & Privacy
+
+Keys only on server; public site keys are domain-locked/ratelimited if you add them later.
+
+Validate/escape all user text; strip tags; length caps: text ≤ 600 chars.
+
+Logs: anonymize IP (hash + salt), never log full email/phone in info level.
+
+Rotate ODIADEV_API_KEY monthly; separate staging/prod keys.
+
+HSTS enabled; CORS explicit allowlist (ALLOWED_ORIGINS only).
+
+13) Deployment & Ops
+
+Proxy on Render:
+
+ENV: ODIADEV_API_BASE, ODIADEV_API_KEY, ALLOWED_ORIGINS, ADMIN_TOKEN.
+
+Scale to 512–1GB RAM; autoscale 1–3 instances.
+
+Widget on static CDN (versioned odiadev-widget.umd.js).
+
+CI: build + lint + unit tests; deploy on tag v*.
+
+Observability: logs (morgan), basic metrics (tts_latency_ms, 5xx_count, 429_count).
+
+Status: simple /healthz; later add public status page.
+
+14) Legal & Content
+
+Footer links: Privacy, Terms, Cookies.
+
+Consent copy: mic usage + analytics usage (non-PII).
+
+Email policy: double-opt-in optional (roadmap).
+
+15) Roadmap
+
+MVP (this PRD)
+
+Widget + proxy + onboarding + TTS; analytics hooks; PWA; admin key console.
+
+v1.1
+
+Payments deep-link; booking calendar; CRM webhook; basic dashboard of leads.
+
+Better VAD tuning; noise suppression; fancy theme.
+
+v1.2
+
+Multi-language; A/B testing prompts; voice selection UI; richer FAQ brain.
+
+16) Prompts (starter)
+
+System prompt (server-side)
+
+You are ODIADEV Assistant. Be concise and helpful. Default to Nigerian context and English. Your goals: answer product questions, capture leads (name, email, phone, use case), and move users to signup or demo. Confirm details back. Avoid long speeches; speak in 1–2 sentences per turn.
+
+Onboarding utterances
+
+“Great to meet you! What’s your name?”
+
+“What’s the best email to reach you?”
+
+“Phone number in case we need to confirm a demo?”
+
+“Briefly, what do you want to build with voice?”
+
+17) Glossary
+
+VAD: Voice Activity Detection to detect end of speech.
+
+Barge-in: User speech interrupts TTS playback.
+
+PWA: Progressive Web App (installable, offline capable).
+
+18) Definition of Done (MVP)
+
+All Acceptance Criteria pass.
+
+Proxy deployed; widget hosted; embedded on at least one Lovable page.
+
+Analytics receiving events; weekly revenue tracking in place.
+
+Docs: “How to embed”, “Env variables”, “Runbook” available to team.
+
+19) How It Should Work (exec summary)
+
+Drop one script on any Lovable page → <odiadev-chat …> renders.
+
+User taps Enable voice once (browser policy) → assistant listens continuously.
+
+User talks; on pause, message is sent to /api/chat; reply is TTS’d via /api/tts.
+
+Assistant guides through onboarding; posts to /api/lead and offers signup.
+
+Everything runs through our proxy (secure keys, CORS, rate limits, logs).
+
+PWA keeps it fast on mobile; offline UX degrades gracefully and retries.

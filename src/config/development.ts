@@ -7,9 +7,9 @@ export const DEV_CONFIG = {
   EVENT_INGEST_SECRET: '',
   
   // API Endpoints (Development)
-  TTS_API_URL: '/api/tts',
-  CHAT_API_URL: '/api/chat',
-  EVENTS_API_URL: '/api/events',
+  TTS_API_URL: 'http://localhost:3001/api/tts',
+  CHAT_API_URL: 'http://localhost:3001/api/chat',
+  EVENTS_API_URL: 'http://localhost:3001/api/events',
   
   // Feature Flags
   ENABLE_VOICE: true,

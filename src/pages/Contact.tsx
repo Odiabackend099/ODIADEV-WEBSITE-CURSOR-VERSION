@@ -29,7 +29,11 @@ const Contact = () => {
       }
 
       // Send lead event (server will add security headers)
-      const response = await fetch('/api/events', {
+      const eventsUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3001/api/events' 
+        : '/api/events'
+      
+      const response = await fetch(eventsUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

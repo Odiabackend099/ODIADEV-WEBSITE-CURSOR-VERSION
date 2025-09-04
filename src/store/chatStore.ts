@@ -129,7 +129,11 @@ export const useChatStore = create<ChatState & ChatActions>()(
           }
 
                             // Send to API (server will add security headers)
-                  const response = await fetch('/api/chat', {
+                  const apiUrl = process.env.NODE_ENV === 'development' 
+                    ? 'http://localhost:3001/api/chat' 
+                    : '/api/chat'
+                  
+                  const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -201,7 +205,11 @@ export const useChatStore = create<ChatState & ChatActions>()(
           }
 
                             // Send conversation end event (server will add security headers)
-                  await fetch('/api/events', {
+                  const eventsUrl = process.env.NODE_ENV === 'development' 
+                    ? 'http://localhost:3001/api/events' 
+                    : '/api/events'
+                  
+                  await fetch(eventsUrl, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -224,7 +232,11 @@ export const useChatStore = create<ChatState & ChatActions>()(
             ...payload,
           }
 
-                            await fetch('/api/events', {
+                            const eventsUrl = process.env.NODE_ENV === 'development' 
+                    ? 'http://localhost:3001/api/events' 
+                    : '/api/events'
+                  
+                  await fetch(eventsUrl, {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
