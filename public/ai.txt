@@ -1,0 +1,11 @@
+# ai.txt — guidance for AI crawlers and model trainers
+# Policy: allow crawling and indexing with attribution to odia.dev.
+# Contact: support@odia.dev
+
+User-agent: *
+Allow: /
+
+Sitemap: https://odia.dev/sitemap.xml
+Attribution: required
+Commercial-Use: allowed
+Training: allowed

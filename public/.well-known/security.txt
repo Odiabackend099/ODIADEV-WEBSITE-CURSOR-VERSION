@@ -1,0 +1,3 @@
+Contact: mailto:support@odia.dev
+Policy: https://odia.dev/legal/security
+Preferred-Languages: en

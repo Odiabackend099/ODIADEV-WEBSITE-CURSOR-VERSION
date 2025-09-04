@@ -1,0 +1,7 @@
+/* TEAM */
+Owner: ODIADEV
+Contact: support@odia.dev
+Site: https://odia.dev
+
+/* TECHNOLOGY */
+Stack: Vite + React (Vercel), Render (Brain), Supabase, n8n

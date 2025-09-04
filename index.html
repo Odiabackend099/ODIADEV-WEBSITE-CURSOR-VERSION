@@ -2,24 +2,73 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ODIADEV - Voice AI Infrastructure for Real Business</title>
-    <meta name="description" content="ODIADEV builds the voice AI infrastructure that powers WhatsApp, Telegram and Web agents — fast, reliable, and truly Nigerian-built." />
-    
-    <!-- Open Graph / Facebook -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>ODIADEV — Voice & Chat AI Agents for WhatsApp, Telegram & Web</title>
+    <meta name="description" content="Deploy premium conversational AI agents with voice (TTS/STT) for WhatsApp, Telegram and Web. Built on ODIADEV Brain (Render), automated by n8n, data on Supabase." />
+    <link rel="canonical" href="https://odia.dev/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://odia.dev/" />
-    <meta property="og:title" content="ODIADEV - Voice AI Infrastructure for Real Business" />
-    <meta property="og:description" content="ODIADEV builds the voice AI infrastructure that powers WhatsApp, Telegram and Web agents — fast, reliable, and truly Nigerian-built." />
-    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:title" content="ODIADEV — Voice & Chat AI Agents" />
+    <meta property="og:description" content="Premium conversational AI with voice for WhatsApp, Telegram & Web." />
+    <meta property="og:image" content="https://odia.dev/og/cover.jpg" />
 
     <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://odia.dev/" />
-    <meta property="twitter:title" content="ODIADEV - Voice AI Infrastructure for Real Business" />
-    <meta property="twitter:description" content="ODIADEV builds the voice AI infrastructure that powers WhatsApp, Telegram and Web agents — fast, reliable, and truly Nigerian-built." />
-    <meta property="twitter:image" content="/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ODIADEV — Voice & Chat AI Agents" />
+    <meta name="twitter:description" content="Premium conversational AI with voice for WhatsApp, Telegram & Web." />
+    <meta name="twitter:image" content="https://odia.dev/og/cover.jpg" />
+
+    <!-- GEO (optional meta; structured data below is what Google uses) -->
+    <meta name="geo.region" content="NG" />
+    <meta name="geo.placename" content="Lagos" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0b1220" />
+
+    <!-- JSON-LD: Organization + Website + SearchAction + LocalBusiness -->
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@type":"Organization",
+      "name":"ODIADEV",
+      "url":"https://odia.dev",
+      "logo":"https://odia.dev/og/logo.png",
+      "sameAs":["https://x.com/odiadev","https://www.linkedin.com/company/odiadev"]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@type":"WebSite",
+      "url":"https://odia.dev",
+      "name":"ODIADEV",
+      "potentialAction":{
+        "@type":"SearchAction",
+        "target":"https://odia.dev/search?q={query}",
+        "query-input":"required name=query"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@type":"LocalBusiness",
+      "name":"ODIADEV",
+      "image":"https://odia.dev/og/logo.png",
+      "url":"https://odia.dev",
+      "address":{
+        "@type":"PostalAddress",
+        "addressCountry":"NG",
+        "addressLocality":"Lagos"
+      },
+      "areaServed":[ "NG", "US", "GB", "CA", "EU" ],
+      "telephone":"+234-000-000-0000"
+    }
+    </script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
