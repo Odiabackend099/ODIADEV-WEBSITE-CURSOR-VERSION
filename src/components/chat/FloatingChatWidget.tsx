@@ -164,7 +164,10 @@ const FloatingChatWidget = () => {
                 <div className="p-4 border-b border-mist/20">
                   <div className="flex items-center justify-between mb-3">
                     <VoiceToggle />
-                    <MicButton />
+                    <MicButton 
+                      onSubmitText={sendMessage}
+                      defaultVoiceId={selectedAvatar?.voiceId}
+                    />
                   </div>
                   <AvatarPicker />
                 </div>

@@ -1,88 +1,142 @@
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion'
 import { useChatStore } from '../../store/chatStore'
-import { useState, useRef, useEffect } from 'react'
 
-const MicButton = () => {
-  const { isMicEnabled, isRecording, toggleMicEnabled, setRecording, sendMessage, stopCurrentAudio, updateUserProfile } = useChatStore()
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([])
-  const [isListening, setIsListening] = useState(false)
-  const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const analyserRef = useRef<AnalyserNode | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+type MicButtonProps = {
+  // called when STT finalizes; your parent should send this to the assistant
+  onSubmitText: (text: string) => Promise<void> | void;
+  // optionally play bot answers with TTS; pass the text and optional voice id
+  defaultVoiceId?: string; // e.g. "naija_female_warm"
+  className?: string;
+};
 
-  // Voice Activity Detection
-  const startVoiceActivityDetection = async () => {
+declare global {
+  interface Window {
+    webkitSpeechRecognition?: any;
+    SpeechRecognition?: any;
+  }
+}
+
+const hasWebSpeech =
+  typeof window !== 'undefined' &&
+  (window.SpeechRecognition || window.webkitSpeechRecognition);
+
+export default function MicButton({
+  onSubmitText,
+  defaultVoiceId = 'naija_female_warm',
+  className = '',
+}: MicButtonProps) {
+  const { isMicEnabled, toggleMicEnabled, updateUserProfile, stopCurrentAudio } = useChatStore()
+  const [isListening, setIsListening] = useState(false);
+  const [interim, setInterim] = useState('');
+  const recRef = useRef<any>(null);
+  const unlockedRef = useRef(false);
+
+  // Create a silent audio to unlock autoplay on first user gesture
+  const unlockAudio = async () => {
+    if (unlockedRef.current) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-      
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-      audioContextRef.current = audioContext
-      
-      const analyser = audioContext.createAnalyser()
-      analyserRef.current = analyser
-      
-      const source = audioContext.createMediaStreamSource(stream)
-      source.connect(analyser)
-      
-      analyser.fftSize = 256
-      const bufferLength = analyser.frequencyBinCount
-      const dataArray = new Uint8Array(bufferLength)
-      
-      const checkVoiceActivity = () => {
-        if (!isListening) return
-        
-        analyser.getByteFrequencyData(dataArray)
-        const average = dataArray.reduce((a, b) => a + b) / bufferLength
-        
-        // Voice activity threshold
-        if (average > 30) {
-          // Voice detected, clear silence timer
-          if (silenceTimer) {
-            clearTimeout(silenceTimer)
-          }
-          
-          // Set new silence timer
-          const timer = setTimeout(() => {
-            stopRecording()
-          }, 2000) // 2 seconds of silence
-          setSilenceTimer(timer)
-        }
-        
-        requestAnimationFrame(checkVoiceActivity)
-      }
-      
-      checkVoiceActivity()
-    } catch (error) {
-      console.error('Error setting up voice activity detection:', error)
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+      await ctx.resume();
+      unlockedRef.current = true;
+    } catch {
+      // best-effort
     }
-  }
+  };
 
-  const stopRecording = async () => {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop()
-      setRecording(false)
-      setIsListening(false)
-      
-      if (silenceTimer) {
-        clearTimeout(silenceTimer)
-        setSilenceTimer(null)
-      }
-      
-      // Clean up audio context
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-        audioContextRef.current = null
-      }
-      
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-        streamRef.current = null
-      }
+  const startRecognition = async () => {
+    await unlockAudio();
+
+    if (!hasWebSpeech) {
+      alert('Voice input not supported on this browser. Please use the text box.');
+      return;
     }
-  }
+    if (recRef.current) return;
+
+    const Recognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const rec = new Recognition();
+    rec.lang = 'en-US'; // TODO: make dynamic if you want locales
+    rec.interimResults = true;
+    rec.maxAlternatives = 1;
+    rec.continuous = false;
+
+    rec.onstart = () => {
+      setIsListening(true);
+      setInterim('');
+    };
+
+    rec.onresult = async (event: any) => {
+      let finalText = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const r = event.results[i];
+        if (r.isFinal) {
+          finalText += r[0].transcript;
+        } else {
+          setInterim(r[0].transcript);
+        }
+      }
+      if (finalText.trim()) {
+        setInterim('');
+        await onSubmitText(finalText.trim());
+      }
+    };
+
+    rec.onerror = () => {
+      stopRecognition();
+      alert('Microphone error. Please allow mic permissions and try again.');
+    };
+
+    rec.onend = () => {
+      stopRecognition();
+    };
+
+    recRef.current = rec;
+    rec.start();
+  };
+
+  const stopRecognition = () => {
+    if (recRef.current) {
+      try {
+        recRef.current.stop();
+      } catch {}
+      recRef.current = null;
+    }
+    setIsListening(false);
+    setInterim('');
+  };
+
+  // Utility to play any string via our API
+  const playTTS = async (text: string, voiceId?: string) => {
+    try {
+      const apiUrl = process.env.NODE_ENV === 'development' 
+        ? 'http://localhost:3001/api/tts' 
+        : '/api/tts'
+      
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, voice_id: voiceId || defaultVoiceId }),
+      });
+      if (!res.ok) throw new Error('TTS failed');
+      const data = await res.json();
+      const audio = new Audio(data.audioUrl);
+      await unlockAudio();
+      await audio.play();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Expose a simple test hook via window (optional)
+  useEffect(() => {
+    (window as any).ODIADEV_playTTS = playTTS;
+  }, []);
 
   const handleMicClick = async () => {
     if (!isMicEnabled) {
@@ -92,74 +146,27 @@ const MicButton = () => {
       return
     }
 
-    if (isRecording) {
-      await stopRecording()
+    if (isListening) {
+      stopRecognition()
     } else {
       // Stop any currently playing TTS audio (barge-in functionality)
       stopCurrentAudio()
-      
-      // Start recording
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        
-        const mediaRecorder = new MediaRecorder(stream)
-        setMediaRecorder(mediaRecorder)
-        
-        const chunks: Blob[] = []
-        setAudioChunks(chunks)
-        
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            chunks.push(event.data)
-          }
-        }
-        
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(chunks, { type: 'audio/wav' })
-          
-          // For now, simulate speech-to-text with a mock response
-          // In production, this would send to a speech-to-text API
-          const mockTranscription = "Hello, I need help with voice AI integration"
-          
-          // Send the transcribed message
-          await sendMessage(mockTranscription)
-        }
-        
-        mediaRecorder.start()
-        setRecording(true)
-        setIsListening(true)
-        
-        // Start voice activity detection
-        await startVoiceActivityDetection()
-        
-      } catch (error) {
-        console.error('Error accessing microphone:', error)
-      }
+      await startRecognition()
     }
   }
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (silenceTimer) {
-        clearTimeout(silenceTimer)
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-      }
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
-      }
-    }
-  }, [silenceTimer])
-
   return (
-    <div className="flex items-center space-x-2">
+    <div className={`flex items-center space-x-2 ${className}`}>
       <span className="text-sm text-stone">Mic</span>
       <motion.button
+        onMouseDown={startRecognition}
+        onMouseUp={stopRecognition}
+        onTouchStart={startRecognition}
+        onTouchEnd={stopRecognition}
         onClick={handleMicClick}
+        aria-pressed={isListening}
         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-          isRecording
+          isListening
             ? 'bg-red-500 text-white animate-pulse'
             : isMicEnabled
             ? 'bg-gold text-navy hover:bg-gold-soft'
@@ -167,8 +174,9 @@ const MicButton = () => {
         }`}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
+        title={isListening ? 'Release to stop talking' : 'Hold to talk'}
       >
-        {isRecording ? (
+        {isListening ? (
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 0.5, repeat: Infinity }}
@@ -184,8 +192,23 @@ const MicButton = () => {
           </svg>
         )}
       </motion.button>
-    </div>
-  )
-}
 
-export default MicButton
+      {interim ? (
+        <div className="text-xs text-stone opacity-70">
+          {interim}
+        </div>
+      ) : null}
+
+      {/* Optional quick TTS demo button (safe to remove) */}
+      <div className="ml-2">
+        <button
+          type="button"
+          onClick={() => playTTS('Hello from ODIADEV voice!')}
+          className="rounded px-2 py-1 text-xs bg-mist hover:bg-mist/80 text-navy"
+        >
+          Test TTS ▶
+        </button>
+      </div>
+    </div>
+  );
+}

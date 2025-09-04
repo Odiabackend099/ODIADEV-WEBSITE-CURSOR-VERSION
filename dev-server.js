@@ -48,7 +48,7 @@ app.post('/api/tts', (req, res) => {
   
   const { text, voice_id } = req.body
   
-  // Mock audio response
+  // Mock audio response - simulate real TTS
   const mockAudio = Buffer.from(`Mock audio for: ${text} with voice: ${voice_id}`).toString('base64')
   
   res.json({
