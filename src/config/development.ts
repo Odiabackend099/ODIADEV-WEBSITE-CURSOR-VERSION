@@ -6,10 +6,13 @@ export const DEV_CONFIG = {
   EVENT_INGEST_KEY: '',
   EVENT_INGEST_SECRET: '',
   
-  // API Endpoints (Development)
-  TTS_API_URL: 'http://localhost:3001/api/tts',
+  // API Endpoints (Development - use real services)
+  TTS_API_URL: 'https://tts-api.odia.dev/v1/tts',
   CHAT_API_URL: 'http://localhost:3001/api/chat',
   EVENTS_API_URL: 'http://localhost:3001/api/events',
+  
+  // TTS Configuration
+  TTS_API_KEY: 'odiadev_10abb658e85c30550ed75b30e7f55836',
   
   // Feature Flags
   ENABLE_VOICE: true,

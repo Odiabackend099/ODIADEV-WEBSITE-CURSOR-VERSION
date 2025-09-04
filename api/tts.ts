@@ -1,7 +1,7 @@
 ﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const TTS_URL = process.env.ODIADEV_TTS_URL || '';      // e.g. https://tts-api.odia.dev
-const TTS_KEY = process.env.ODIADEV_TTS_API_KEY || '';
+const TTS_URL = process.env.ODIADEV_TTS_URL || 'https://tts-api.odia.dev';
+const TTS_KEY = process.env.ODIADEV_TTS_API_KEY || 'odiadev_10abb658e85c30550ed75b30e7f55836';
 const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
 
 const toB64 = (buf: ArrayBuffer) => Buffer.from(buf).toString('base64');

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODIADEV Voice Test - 10 Second Audio</title>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0b1220 0%, #1a2332 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 600px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        h1 {
+            color: #f4d03f;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        .test-text {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        button {
+            background: linear-gradient(135deg, #f4d03f 0%, #f39c12 100%);
+            color: #0b1220;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(244, 208, 63, 0.3);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+        }
+        .status.error {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+        .status.info {
+            background: rgba(52, 152, 219, 0.2);
+            border: 1px solid #3498db;
+            color: #3498db;
+        }
+        .audio-player {
+            margin: 20px 0;
+        }
+        audio {
+            width: 100%;
+            max-width: 400px;
+        }
+        .progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #f4d03f, #f39c12);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 ODIADEV Voice Test</h1>
+        <p>Testing 10-second audio generation with Nigerian voice</p>
+        
+        <div class="test-text">
+            "Hello! This is ODIADEV voice AI testing. We are generating a ten second audio clip to verify our text to speech functionality is working perfectly. This audio demonstrates our Nigerian voice capabilities and confirms the integration is successful. Thank you for testing with us!"
+        </div>
+        
+        <button id="generateBtn" onclick="generateAudio()">
+            🎵 Generate 10-Second Audio
+        </button>
+        
+        <button id="playBtn" onclick="playAudio()" disabled>
+            ▶️ Play Audio
+        </button>
+        
+        <div id="status" class="status info" style="display: none;">
+            Ready to test voice functionality
+        </div>
+        
+        <div class="progress" id="progressContainer" style="display: none;">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="audio-player" id="audioPlayer" style="display: none;">
+            <audio id="audioElement" controls>
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+    </div>
+
+    <script>
+        let currentAudioUrl = null;
+        let audioElement = null;
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        function showProgress(percent) {
+            const container = document.getElementById('progressContainer');
+            const bar = document.getElementById('progressBar');
+            container.style.display = 'block';
+            bar.style.width = `${percent}%`;
+        }
+
+        async function generateAudio() {
+            const generateBtn = document.getElementById('generateBtn');
+            const playBtn = document.getElementById('playBtn');
+            
+            generateBtn.disabled = true;
+            playBtn.disabled = true;
+            
+            showStatus('🎤 Generating audio...', 'info');
+            showProgress(10);
+            
+            const testText = "Hello! This is ODIADEV voice AI testing. We are generating a ten second audio clip to verify our text to speech functionality is working perfectly. This audio demonstrates our Nigerian voice capabilities and confirms the integration is successful. Thank you for testing with us!";
+            
+            try {
+                showProgress(30);
+                
+                // Try local dev server first, then production
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:3001/api/tts'
+                    : '/api/tts';
+                
+                showStatus('📡 Calling TTS API...', 'info');
+                showProgress(50);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: testText,
+                        voice_id: 'naija_female_warm'
+                    })
+                });
+                
+                showProgress(70);
+                
+                if (!response.ok) {
+                    throw new Error(`TTS API failed: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                showProgress(90);
+                
+                if (!data.audioUrl) {
+                    throw new Error('No audio URL returned from TTS API');
+                }
+                
+                currentAudioUrl = data.audioUrl;
+                audioElement = document.getElementById('audioElement');
+                audioElement.src = currentAudioUrl;
+                
+                showProgress(100);
+                showStatus('✅ Audio generated successfully! Ready to play.', 'success');
+                
+                playBtn.disabled = false;
+                document.getElementById('audioPlayer').style.display = 'block';
+                
+            } catch (error) {
+                console.error('TTS Error:', error);
+                showStatus(`❌ Failed to generate audio: ${error.message}`, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                setTimeout(() => {
+                    document.getElementById('progressContainer').style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function playAudio() {
+            if (!currentAudioUrl || !audioElement) {
+                showStatus('❌ No audio available. Generate audio first.', 'error');
+                return;
+            }
+            
+            showStatus('🔊 Playing 10-second audio...', 'info');
+            
+            audioElement.play().then(() => {
+                showStatus('🎵 Audio is playing! Listen to the Nigerian voice.', 'success');
+            }).catch(error => {
+                console.error('Playback error:', error);
+                showStatus(`❌ Playback failed: ${error.message}`, 'error');
+            });
+        }
+
+        // Auto-generate on page load
+        window.addEventListener('load', () => {
+            showStatus('🚀 ODIADEV Voice Test Ready', 'info');
+        });
+    </script>
+</body>
+</html>
