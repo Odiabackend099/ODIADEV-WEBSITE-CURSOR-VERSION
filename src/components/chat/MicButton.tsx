@@ -1,35 +1,157 @@
 import { motion } from 'framer-motion'
 import { useChatStore } from '../../store/chatStore'
+import { useState, useRef, useEffect } from 'react'
 
 const MicButton = () => {
-  const { isMicEnabled, isRecording, toggleMicEnabled, setRecording } = useChatStore()
+  const { isMicEnabled, isRecording, toggleMicEnabled, setRecording, sendMessage, stopCurrentAudio, updateUserProfile } = useChatStore()
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([])
+  const [isListening, setIsListening] = useState(false)
+  const [silenceTimer, setSilenceTimer] = useState<NodeJS.Timeout | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+
+  // Voice Activity Detection
+  const startVoiceActivityDetection = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      streamRef.current = stream
+      
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioContextRef.current = audioContext
+      
+      const analyser = audioContext.createAnalyser()
+      analyserRef.current = analyser
+      
+      const source = audioContext.createMediaStreamSource(stream)
+      source.connect(analyser)
+      
+      analyser.fftSize = 256
+      const bufferLength = analyser.frequencyBinCount
+      const dataArray = new Uint8Array(bufferLength)
+      
+      const checkVoiceActivity = () => {
+        if (!isListening) return
+        
+        analyser.getByteFrequencyData(dataArray)
+        const average = dataArray.reduce((a, b) => a + b) / bufferLength
+        
+        // Voice activity threshold
+        if (average > 30) {
+          // Voice detected, clear silence timer
+          if (silenceTimer) {
+            clearTimeout(silenceTimer)
+          }
+          
+          // Set new silence timer
+          const timer = setTimeout(() => {
+            stopRecording()
+          }, 2000) // 2 seconds of silence
+          setSilenceTimer(timer)
+        }
+        
+        requestAnimationFrame(checkVoiceActivity)
+      }
+      
+      checkVoiceActivity()
+    } catch (error) {
+      console.error('Error setting up voice activity detection:', error)
+    }
+  }
+
+  const stopRecording = async () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop()
+      setRecording(false)
+      setIsListening(false)
+      
+      if (silenceTimer) {
+        clearTimeout(silenceTimer)
+        setSilenceTimer(null)
+      }
+      
+      // Clean up audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+        audioContextRef.current = null
+      }
+      
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current = null
+      }
+    }
+  }
 
   const handleMicClick = async () => {
     if (!isMicEnabled) {
       toggleMicEnabled()
+      // Update user profile to indicate they've consented to microphone access
+      updateUserProfile({ hasConsented: true })
       return
     }
 
     if (isRecording) {
-      // Stop recording
-      setRecording(false)
-      // TODO: Process recorded audio
+      await stopRecording()
     } else {
+      // Stop any currently playing TTS audio (barge-in functionality)
+      stopCurrentAudio()
+      
       // Start recording
       try {
-        await navigator.mediaDevices.getUserMedia({ audio: true })
-        setRecording(true)
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         
-        // TODO: Implement actual recording logic
-        // For now, just simulate recording
-        setTimeout(() => {
-          setRecording(false)
-        }, 3000)
+        const mediaRecorder = new MediaRecorder(stream)
+        setMediaRecorder(mediaRecorder)
+        
+        const chunks: Blob[] = []
+        setAudioChunks(chunks)
+        
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data)
+          }
+        }
+        
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(chunks, { type: 'audio/wav' })
+          
+          // For now, simulate speech-to-text with a mock response
+          // In production, this would send to a speech-to-text API
+          const mockTranscription = "Hello, I need help with voice AI integration"
+          
+          // Send the transcribed message
+          await sendMessage(mockTranscription)
+        }
+        
+        mediaRecorder.start()
+        setRecording(true)
+        setIsListening(true)
+        
+        // Start voice activity detection
+        await startVoiceActivityDetection()
+        
       } catch (error) {
         console.error('Error accessing microphone:', error)
       }
     }
   }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (silenceTimer) {
+        clearTimeout(silenceTimer)
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [silenceTimer])
 
   return (
     <div className="flex items-center space-x-2">

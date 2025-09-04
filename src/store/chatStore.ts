@@ -20,6 +20,16 @@ export interface Avatar {
   gender: 'male' | 'female'
 }
 
+export interface UserProfile {
+  name?: string
+  email?: string
+  phone?: string
+  businessName?: string
+  industry?: string
+  hasConsented: boolean
+  lastVisit?: Date
+}
+
 export interface ChatState {
   sessionId: string | null
   messages: Message[]
@@ -28,6 +38,8 @@ export interface ChatState {
   selectedAvatar: Avatar | null
   isRecording: boolean
   isPlaying: boolean
+  currentAudio: HTMLAudioElement | null
+  userProfile: UserProfile
 }
 
 export interface ChatActions {
@@ -39,6 +51,8 @@ export interface ChatActions {
   setSelectedAvatar: (avatar: Avatar) => void
   setRecording: (recording: boolean) => void
   setPlaying: (playing: boolean) => void
+  stopCurrentAudio: () => void
+  updateUserProfile: (profile: Partial<UserProfile>) => void
   endConversation: () => Promise<void>
   clearMessages: () => void
   sendEvent: (type: string, payload: any) => Promise<void>
@@ -94,11 +108,33 @@ export const useChatStore = create<ChatState & ChatActions>()(
       selectedAvatar: defaultAvatars[0],
       isRecording: false,
       isPlaying: false,
+      currentAudio: null as HTMLAudioElement | null,
+      userProfile: {
+        hasConsented: false,
+        lastVisit: new Date(),
+      },
 
       // Actions
       initializeSession: () => {
-        const sessionId = get().sessionId || crypto.randomUUID()
-        set({ sessionId })
+        const { sessionId, userProfile } = get()
+        const newSessionId = sessionId || crypto.randomUUID()
+        
+        // Update last visit
+        const updatedProfile = {
+          ...userProfile,
+          lastVisit: new Date(),
+        }
+        
+        set({ sessionId: newSessionId, userProfile: updatedProfile })
+        
+        // Show personalized greeting for returning users
+        if (userProfile.name && userProfile.hasConsented) {
+          const greeting = `Welcome back, ${userProfile.name}! How can I help you today?`
+          get().addMessage({
+            content: greeting,
+            role: 'assistant',
+          })
+        }
       },
 
       addMessage: (message) => {
@@ -156,7 +192,20 @@ export const useChatStore = create<ChatState & ChatActions>()(
 
           // Auto-play audio if voice mode is on
           if (isVoiceMode && data.audioUrl) {
+            const { stopCurrentAudio } = get()
+            stopCurrentAudio() // Stop any currently playing audio
+            
             const audio = new Audio(data.audioUrl)
+            set({ currentAudio: audio, isPlaying: true })
+            
+            audio.onended = () => {
+              set({ currentAudio: null, isPlaying: false })
+            }
+            
+            audio.onerror = () => {
+              set({ currentAudio: null, isPlaying: false })
+            }
+            
             audio.play().catch(console.error)
           }
         } catch (error) {
@@ -189,6 +238,21 @@ export const useChatStore = create<ChatState & ChatActions>()(
 
       setPlaying: (playing) => {
         set({ isPlaying: playing })
+      },
+
+      stopCurrentAudio: () => {
+        const { currentAudio } = get()
+        if (currentAudio) {
+          currentAudio.pause()
+          currentAudio.currentTime = 0
+          set({ currentAudio: null, isPlaying: false })
+        }
+      },
+
+      updateUserProfile: (profile) => {
+        set((state) => ({
+          userProfile: { ...state.userProfile, ...profile }
+        }))
       },
 
       endConversation: async () => {
