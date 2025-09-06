@@ -4,6 +4,7 @@ import Lenis from 'lenis'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import FloatingChatWidget from './components/chat/FloatingChatWidget'
+import AdaquaChatWidget from './components/chat/AdaquaChatWidget'
 
 // Pages
 import Home from './pages/Home'
@@ -14,6 +15,7 @@ import About from './pages/About'
 import Careers from './pages/Careers'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
+import AdaquaTest from './pages/AdaquaTest'
 import Dashboard from './pages/dashboard/Index'
 
 function App() {
@@ -49,11 +51,13 @@ function App() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
+          <Route path="/adaqua-test" element={<AdaquaTest />} />
           <Route path="/dashboard/*" element={<Dashboard />} />
         </Routes>
       </main>
       <Footer />
       <FloatingChatWidget />
+      <AdaquaChatWidget />
     </div>
   )
 }

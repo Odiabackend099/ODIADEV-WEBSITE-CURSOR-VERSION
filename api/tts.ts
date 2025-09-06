@@ -1,85 +1,75 @@
-﻿import type { VercelRequest, VercelResponse } from '@vercel/node';
+﻿import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const TTS_URL = process.env.ODIADEV_TTS_URL || 'https://tts-api.odia.dev';
-const TTS_KEY = process.env.ODIADEV_TTS_API_KEY || 'odiadev_10abb658e85c30550ed75b30e7f55836';
-const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
-
-const toB64 = (buf: ArrayBuffer) => Buffer.from(buf).toString('base64');
-
-async function tryOdia(text: string, voice_id?: string): Promise<string|null> {
-  if (!TTS_URL) return null;
-  const candidates = [
-    { url: `${TTS_URL}/v1/tts`, json: true },
-    { url: `${TTS_URL}/synthesize`, json: false },
-    { url: `${TTS_URL}`, json: false },
-  ];
-  for (const c of candidates) {
-    try {
-      const r = await fetch(c.url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(TTS_KEY ? { Authorization: `Bearer ${TTS_KEY}` } : {}),
-        },
-        body: JSON.stringify({ text, voice_id }),
-      });
-      if (!r.ok) continue;
-      const ct = r.headers.get('content-type') || '';
-      if (ct.includes('application/json')) {
-        const data = await r.json();
-        if (typeof data.audioUrl === 'string' && data.audioUrl.startsWith('data:')) {
-          return data.audioUrl.split(',')[1];
-        }
-        if (typeof data.audio === 'string') return data.audio;
-        if (typeof data.data === 'string') return data.data;
-      } else {
-        const buf = await r.arrayBuffer();
-        return toB64(buf);
-      }
-    } catch {}
-  }
-  return null;
-}
-
-async function tryOpenAI(text: string, voice_id?: string): Promise<string|null> {
-  if (!OPENAI_KEY) return null;
-  // Map your voice ids to OpenAI voices; default to alloy
-  const map: Record<string,string> = {
-    naija_female_warm: 'alloy',
-    naija_male_bass: 'verse',
-  };
-  const voice = map[voice_id || ''] || 'alloy';
-
-  const r = await fetch('https://api.openai.com/v1/audio/speech', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini-tts',
-      voice,
-      input: text,
-      format: 'mp3',
-    }),
-  });
-  if (!r.ok) return null;
-  const buf = await r.arrayBuffer();
-  return toB64(buf);
-}
+const ODIADEV_TTS_URL = 'http://13.247.221.39'
+const ODIADEV_TTS_KEY = process.env.ODIADEV_TTS_KEY || ''
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
   try {
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
-    const { text, voice_id } = req.body || {};
-    if (!text) return res.status(400).json({ error: 'Missing text' });
+    const { text, voice_id = 'naija_female_warm', format = 'mp3' } = req.body
 
-    let b64 = await tryOdia(text, voice_id);
-    if (!b64) b64 = await tryOpenAI(text, voice_id);
-    if (!b64) return res.status(502).json({ error: 'All TTS providers failed' });
+    if (!text) {
+      return res.status(400).json({ error: 'Text is required' })
+    }
 
-    return res.status(200).json({ audioUrl: `data:audio/mpeg;base64,${b64}` });
-  } catch (e: any) {
-    return res.status(500).json({ error: e?.message || 'TTS error' });
+    if (!ODIADEV_TTS_KEY) {
+      return res.status(500).json({ error: 'TTS API key not configured' })
+    }
+
+    // Call ODIADEV TTS API
+    const ttsResponse = await fetch(`${ODIADEV_TTS_URL}/v1/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ODIADEV_TTS_KEY,
+      },
+      body: JSON.stringify({
+        text,
+        voice_id,
+        format
+      })
+    })
+
+    if (!ttsResponse.ok) {
+      const errorText = await ttsResponse.text()
+      console.error('ODIADEV TTS Error:', errorText)
+      return res.status(502).json({ 
+        error: 'TTS service unavailable',
+        details: errorText
+      })
+    }
+
+    // Get the audio data
+    const audioBuffer = await ttsResponse.arrayBuffer()
+    const base64Audio = Buffer.from(audioBuffer).toString('base64')
+    
+    // Return as data URL
+    const audioUrl = `data:audio/${format};base64,${base64Audio}`
+
+    return res.status(200).json({
+      audioUrl,
+      format,
+      voice_id,
+      text: text.substring(0, 100) + (text.length > 100 ? '...' : '')
+    })
+
+  } catch (error) {
+    console.error('TTS Handler Error:', error)
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    })
   }
 }
