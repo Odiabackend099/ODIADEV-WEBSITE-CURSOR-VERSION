@@ -3,7 +3,6 @@ import { useEffect } from 'react'
 import Lenis from 'lenis'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
-import FloatingChatWidget from './components/chat/FloatingChatWidget'
 import AdaquaChatWidget from './components/chat/AdaquaChatWidget'
 
 // Pages
@@ -56,7 +55,6 @@ function App() {
         </Routes>
       </main>
       <Footer />
-      <FloatingChatWidget />
       <AdaquaChatWidget />
     </div>
   )

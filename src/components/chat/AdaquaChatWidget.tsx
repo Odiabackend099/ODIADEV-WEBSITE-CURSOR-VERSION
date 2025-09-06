@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, MicOff, Send, Volume2, VolumeX, X, MessageCircle } from 'lucide-react'
+import { Mic, MicOff, Send, Volume2, VolumeX, X, MessageCircle, User, Bot } from 'lucide-react'
 
 interface Message {
   id: string
@@ -10,6 +10,17 @@ interface Message {
   isAudio?: boolean
 }
 
+interface VoiceOption {
+  id: string
+  name: string
+  gender: 'male' | 'female'
+}
+
+const VOICE_OPTIONS: VoiceOption[] = [
+  { id: 'naija_female_warm', name: 'Naija Female (Warm)', gender: 'female' },
+  { id: 'naija_male_strong', name: 'Naija Male (Strong)', gender: 'male' }
+]
+
 const AdaquaChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -18,11 +29,29 @@ const AdaquaChatWidget = () => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true)
+  const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICE_OPTIONS[0])
+  const [retryCount, setRetryCount] = useState(0)
+  const [isOffline, setIsOffline] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Check online status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false)
+    const handleOffline = () => setIsOffline(true)
+    
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -71,7 +100,10 @@ const AdaquaChatWidget = () => {
     }
   }
 
-  const generateTTS = async (text: string): Promise<string | null> => {
+  const generateTTS = async (text: string, retryAttempt = 0): Promise<string | null> => {
+    const maxRetries = 3
+    const baseDelay = 250
+    
     try {
       const response = await fetch('/api/tts', {
         method: 'POST',
@@ -80,19 +112,33 @@ const AdaquaChatWidget = () => {
         },
         body: JSON.stringify({
           text,
-          voice_id: 'naija_female_warm',
+          voice_id: selectedVoice.id,
           format: 'mp3'
         })
       })
 
       if (!response.ok) {
-        throw new Error('TTS API failed')
+        throw new Error(`TTS API failed: ${response.status}`)
       }
 
       const data = await response.json()
+      setRetryCount(0) // Reset retry count on success
       return data.audioUrl
     } catch (error) {
       console.error('TTS Error:', error)
+      
+      if (retryAttempt < maxRetries && !isOffline) {
+        const delay = baseDelay * Math.pow(2, retryAttempt)
+        console.log(`Retrying TTS in ${delay}ms (attempt ${retryAttempt + 1}/${maxRetries})`)
+        
+        return new Promise((resolve) => {
+          retryTimeoutRef.current = setTimeout(async () => {
+            const result = await generateTTS(text, retryAttempt + 1)
+            resolve(result)
+          }, delay)
+        })
+      }
+      
       return null
     }
   }
@@ -138,7 +184,9 @@ const AdaquaChatWidget = () => {
     } catch (error) {
       console.error('AI Error:', error)
       addMessage({
-        content: "I'm sorry, I'm having trouble connecting right now. Please try again.",
+        content: isOffline 
+          ? "I'm offline right now. Your message has been queued and will be sent when I'm back online."
+          : "I'm sorry, I'm having trouble connecting right now. Please try again.",
         role: 'assistant',
         isAudio: true
       })
@@ -241,16 +289,23 @@ const AdaquaChatWidget = () => {
     }
   }
 
+  const handleVoiceChange = (voice: VoiceOption) => {
+    setSelectedVoice(voice)
+    if (isPlaying) {
+      stopAudio()
+    }
+  }
+
   return (
     <>
       {/* Floating Chat Button */}
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl flex items-center justify-center text-white z-50 hover:scale-105 transition-transform"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full shadow-2xl flex items-center justify-center text-white z-50 hover:scale-105 transition-transform"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
+        {isOpen ? <X size={20} className="sm:w-6 sm:h-6" /> : <MessageCircle size={20} className="sm:w-6 sm:h-6" />}
       </motion.button>
 
       {/* Chat Widget */}
@@ -260,33 +315,56 @@ const AdaquaChatWidget = () => {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-24 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-40 flex flex-col overflow-hidden"
+            className="fixed bottom-20 right-4 left-4 sm:bottom-24 sm:right-6 sm:left-auto sm:w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 z-40 flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-lg font-bold">O</span>
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 sm:p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-sm sm:text-lg font-bold">O</span>
                 </div>
                 <div>
-                  <h3 className="font-semibold">Agent ODIADEV</h3>
+                  <h3 className="font-semibold text-sm sm:text-base">Agent ODIADEV</h3>
                   <p className="text-xs opacity-90">AI Assistant</p>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
+                {/* Voice Selector */}
+                <select
+                  value={selectedVoice.id}
+                  onChange={(e) => {
+                    const voice = VOICE_OPTIONS.find(v => v.id === e.target.value)
+                    if (voice) handleVoiceChange(voice)
+                  }}
+                  className="text-xs bg-white/20 text-white rounded px-2 py-1 border-0 focus:outline-none focus:ring-1 focus:ring-white/50"
+                >
+                  {VOICE_OPTIONS.map(voice => (
+                    <option key={voice.id} value={voice.id} className="text-gray-800">
+                      {voice.name}
+                    </option>
+                  ))}
+                </select>
                 <button
                   onClick={toggleVoice}
-                  className={`p-2 rounded-full transition-colors ${
+                  className={`p-1.5 sm:p-2 rounded-full transition-colors ${
                     isVoiceEnabled ? 'bg-white/20' : 'bg-white/10'
                   }`}
                 >
-                  {isVoiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                  {isVoiceEnabled ? <Volume2 size={14} className="sm:w-4 sm:h-4" /> : <VolumeX size={14} className="sm:w-4 sm:h-4" />}
                 </button>
               </div>
             </div>
 
+            {/* Offline Indicator */}
+            {isOffline && (
+              <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-2 text-xs">
+                <p className="font-medium">You're offline</p>
+                <p>Messages will be queued and sent when you're back online</p>
+              </div>
+            )}
+
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
@@ -294,30 +372,42 @@ const AdaquaChatWidget = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div
-                    className={`max-w-[80%] p-3 rounded-2xl ${
-                      message.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    <p className="text-sm">{message.content}</p>
-                    {message.isAudio && message.role === 'assistant' && (
-                      <div className="mt-2 flex items-center space-x-2">
-                        <button
-                          onClick={() => {
-                            if (isPlaying) {
-                              stopAudio()
-                            } else {
-                              generateTTS(message.content).then(audioUrl => {
-                                if (audioUrl) playAudio(audioUrl)
-                              })
-                            }
-                          }}
-                          className="text-xs bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors"
-                        >
-                          {isPlaying ? '⏸️' : '🔊'} Play
-                        </button>
+                  <div className="flex items-start space-x-2 max-w-[85%]">
+                    {message.role === 'assistant' && (
+                      <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <Bot size={12} className="text-white" />
+                      </div>
+                    )}
+                    <div
+                      className={`p-3 rounded-2xl ${
+                        message.role === 'user'
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed">{message.content}</p>
+                      {message.isAudio && message.role === 'assistant' && (
+                        <div className="mt-2 flex items-center space-x-2">
+                          <button
+                            onClick={() => {
+                              if (isPlaying) {
+                                stopAudio()
+                              } else {
+                                generateTTS(message.content).then(audioUrl => {
+                                  if (audioUrl) playAudio(audioUrl)
+                                })
+                              }
+                            }}
+                            className="text-xs bg-white/20 px-2 py-1 rounded-full hover:bg-white/30 transition-colors"
+                          >
+                            {isPlaying ? '⏸️' : '🔊'} Play
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {message.role === 'user' && (
+                      <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <User size={12} className="text-gray-600" />
                       </div>
                     )}
                   </div>
@@ -330,11 +420,16 @@ const AdaquaChatWidget = () => {
                   animate={{ opacity: 1 }}
                   className="flex justify-start"
                 >
-                  <div className="bg-gray-100 p-3 rounded-2xl">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="flex items-start space-x-2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                      <Bot size={12} className="text-white" />
+                    </div>
+                    <div className="bg-gray-100 p-3 rounded-2xl">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -344,7 +439,7 @@ const AdaquaChatWidget = () => {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-3 sm:p-4 border-t border-gray-200 bg-gray-50">
               <div className="flex items-center space-x-2">
                 <div className="flex-1 relative">
                   <input
@@ -353,7 +448,8 @@ const AdaquaChatWidget = () => {
                     onChange={(e) => setInputText(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     placeholder="Type your message..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={isOffline}
                   />
                 </div>
                 
@@ -362,26 +458,34 @@ const AdaquaChatWidget = () => {
                   onMouseUp={stopRecording}
                   onTouchStart={startRecording}
                   onTouchEnd={stopRecording}
-                  className={`p-3 rounded-full transition-colors ${
+                  disabled={isOffline}
+                  className={`p-2 sm:p-3 rounded-full transition-colors ${
                     isRecording
                       ? 'bg-red-500 text-white animate-pulse'
+                      : isOffline
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                   }`}
                 >
-                  {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
+                  {isRecording ? <MicOff size={16} className="sm:w-5 sm:h-5" /> : <Mic size={16} className="sm:w-5 sm:h-5" />}
                 </button>
                 
                 <button
                   onClick={handleSendMessage}
-                  disabled={!inputText.trim()}
-                  className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
+                  disabled={!inputText.trim() || isOffline}
+                  className="p-2 sm:p-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition-transform"
                 >
-                  <Send size={20} />
+                  <Send size={16} className="sm:w-5 sm:h-5" />
                 </button>
               </div>
               
               <p className="text-xs text-gray-500 mt-2 text-center">
-                {isVoiceEnabled ? 'Voice enabled - Hold mic to speak' : 'Voice disabled - Type to chat'}
+                {isOffline 
+                  ? 'Offline - Messages will be queued'
+                  : isVoiceEnabled 
+                    ? 'Voice enabled - Hold mic to speak' 
+                    : 'Voice disabled - Type to chat'
+                }
               </p>
             </div>
           </motion.div>
@@ -400,3 +504,4 @@ const AdaquaChatWidget = () => {
 }
 
 export default AdaquaChatWidget
+

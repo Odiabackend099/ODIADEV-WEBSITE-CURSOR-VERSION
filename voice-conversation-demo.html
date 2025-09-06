@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ODIADEV Voice Conversation Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 18px;
+        }
+        .demo-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 15px;
+            background: #f8f9fa;
+        }
+        .demo-section h3 {
+            color: #333;
+            margin-top: 0;
+        }
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .voice-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .voice-selector {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+        .audio-player {
+            margin: 10px 0;
+        }
+        .conversation-log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .message.user {
+            background: #e3f2fd;
+            margin-left: 20px;
+        }
+        .message.assistant {
+            background: #f3e5f5;
+            margin-right: 20px;
+        }
+        .message-text {
+            margin: 5px 0;
+        }
+        .message-time {
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 ODIADEV Voice Conversation Demo</h1>
+            <p>Test the voice conversation functionality with Nigerian TTS</p>
+        </div>
+
+        <div class="demo-section">
+            <h3>🎯 Voice Configuration</h3>
+            <div class="voice-controls">
+                <label for="voiceSelect">Voice:</label>
+                <select id="voiceSelect" class="voice-selector">
+                    <option value="naija_female_warm">Naija Female (Warm)</option>
+                    <option value="naija_male_strong">Naija Male (Strong)</option>
+                </select>
+                <button id="testVoiceBtn" class="button">Test Voice</button>
+            </div>
+            <div id="voiceStatus" class="status info" style="display: none;">
+                Ready to test voice
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>💬 Text-to-Speech Test</h3>
+            <div>
+                <input type="text" id="textInput" placeholder="Enter text to convert to speech..." 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin: 10px 0;">
+                <button id="ttsBtn" class="button">Convert to Speech</button>
+            </div>
+            <div id="ttsStatus" class="status info" style="display: none;">
+                Enter text and click convert
+            </div>
+            <div id="audioPlayer" class="audio-player" style="display: none;">
+                <audio controls style="width: 100%;"></audio>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>🤖 AI Conversation Test</h3>
+            <div>
+                <input type="text" id="chatInput" placeholder="Type your message to Agent ODIADEV..." 
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin: 10px 0;">
+                <button id="chatBtn" class="button">Send Message</button>
+            </div>
+            <div id="chatStatus" class="status info" style="display: none;">
+                Type a message to start conversation
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>📝 Conversation Log</h3>
+            <div id="conversationLog" class="conversation-log">
+                <div class="message assistant">
+                    <div class="message-text">Hello! I'm Agent ODIADEV, your AI assistant. How can I help you today?</div>
+                    <div class="message-time">System</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>🔧 API Status</h3>
+            <div id="apiStatus" class="status info">
+                Checking API status...
+            </div>
+            <button id="checkApiBtn" class="button">Check API Status</button>
+        </div>
+    </div>
+
+    <script>
+        // Voice conversation demo functionality
+        class VoiceConversationDemo {
+            constructor() {
+                this.initializeElements();
+                this.setupEventListeners();
+                this.checkApiStatus();
+            }
+
+            initializeElements() {
+                this.voiceSelect = document.getElementById('voiceSelect');
+                this.testVoiceBtn = document.getElementById('testVoiceBtn');
+                this.voiceStatus = document.getElementById('voiceStatus');
+                
+                this.textInput = document.getElementById('textInput');
+                this.ttsBtn = document.getElementById('ttsBtn');
+                this.ttsStatus = document.getElementById('ttsStatus');
+                this.audioPlayer = document.getElementById('audioPlayer');
+                
+                this.chatInput = document.getElementById('chatInput');
+                this.chatBtn = document.getElementById('chatBtn');
+                this.chatStatus = document.getElementById('chatStatus');
+                this.conversationLog = document.getElementById('conversationLog');
+                
+                this.apiStatus = document.getElementById('apiStatus');
+                this.checkApiBtn = document.getElementById('checkApiBtn');
+            }
+
+            setupEventListeners() {
+                this.testVoiceBtn.addEventListener('click', () => this.testVoice());
+                this.ttsBtn.addEventListener('click', () => this.convertToSpeech());
+                this.chatBtn.addEventListener('click', () => this.sendMessage());
+                this.checkApiBtn.addEventListener('click', () => this.checkApiStatus());
+                
+                this.textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.convertToSpeech();
+                });
+                
+                this.chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+
+            async checkApiStatus() {
+                this.showStatus(this.apiStatus, 'Checking API status...', 'info');
+                
+                try {
+                    // Test TTS API
+                    const ttsResponse = await fetch('/api/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: 'API test',
+                            voice_id: 'naija_female_warm'
+                        })
+                    });
+                    
+                    if (ttsResponse.ok) {
+                        this.showStatus(this.apiStatus, '✅ TTS API is working correctly', 'success');
+                    } else {
+                        this.showStatus(this.apiStatus, `❌ TTS API error: ${ttsResponse.status}`, 'error');
+                    }
+                } catch (error) {
+                    this.showStatus(this.apiStatus, `❌ API connection failed: ${error.message}`, 'error');
+                }
+            }
+
+            async testVoice() {
+                const testText = "Hello! This is a test of the ODIADEV voice system. How does this sound?";
+                await this.convertTextToSpeech(testText, true);
+            }
+
+            async convertToSpeech() {
+                const text = this.textInput.value.trim();
+                if (!text) {
+                    this.showStatus(this.ttsStatus, 'Please enter some text first', 'error');
+                    return;
+                }
+                
+                await this.convertTextToSpeech(text);
+            }
+
+            async convertTextToSpeech(text, isTest = false) {
+                const statusElement = isTest ? this.voiceStatus : this.ttsStatus;
+                this.showStatus(statusElement, 'Converting text to speech...', 'info');
+                
+                try {
+                    const response = await fetch('/api/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: text,
+                            voice_id: this.voiceSelect.value,
+                            format: 'mp3'
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        this.playAudio(data.audioUrl);
+                        this.showStatus(statusElement, '✅ Speech generated successfully!', 'success');
+                    } else {
+                        const errorData = await response.json();
+                        this.showStatus(statusElement, `❌ TTS failed: ${errorData.error || response.status}`, 'error');
+                    }
+                } catch (error) {
+                    this.showStatus(statusElement, `❌ Error: ${error.message}`, 'error');
+                }
+            }
+
+            async sendMessage() {
+                const message = this.chatInput.value.trim();
+                if (!message) {
+                    this.showStatus(this.chatStatus, 'Please enter a message first', 'error');
+                    return;
+                }
+
+                // Add user message to conversation
+                this.addMessageToLog(message, 'user');
+                this.chatInput.value = '';
+                this.showStatus(this.chatStatus, 'Sending message to AI...', 'info');
+
+                try {
+                    // Send to chat API
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: message,
+                            sessionId: 'demo-session-' + Date.now()
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const aiResponse = data.reply || data.message || "I'm sorry, I couldn't process that request.";
+                        
+                        // Add AI response to conversation
+                        this.addMessageToLog(aiResponse, 'assistant');
+                        
+                        // Convert AI response to speech
+                        await this.convertTextToSpeech(aiResponse);
+                        
+                        this.showStatus(this.chatStatus, '✅ Message sent and response received!', 'success');
+                    } else {
+                        const errorData = await response.json();
+                        this.showStatus(this.chatStatus, `❌ Chat failed: ${errorData.error || response.status}`, 'error');
+                    }
+                } catch (error) {
+                    this.showStatus(this.chatStatus, `❌ Error: ${error.message}`, 'error');
+                }
+            }
+
+            addMessageToLog(text, role) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role}`;
+                
+                const time = new Date().toLocaleTimeString();
+                messageDiv.innerHTML = `
+                    <div class="message-text">${text}</div>
+                    <div class="message-time">${time}</div>
+                `;
+                
+                this.conversationLog.appendChild(messageDiv);
+                this.conversationLog.scrollTop = this.conversationLog.scrollHeight;
+            }
+
+            playAudio(audioUrl) {
+                const audio = this.audioPlayer.querySelector('audio');
+                audio.src = audioUrl;
+                audio.style.display = 'block';
+                this.audioPlayer.style.display = 'block';
+                
+                audio.play().catch(error => {
+                    console.error('Audio play failed:', error);
+                    this.showStatus(this.ttsStatus, 'Audio generated but could not play automatically', 'info');
+                });
+            }
+
+            showStatus(element, message, type) {
+                element.textContent = message;
+                element.className = `status ${type}`;
+                element.style.display = 'block';
+            }
+        }
+
+        // Initialize the demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new VoiceConversationDemo();
+        });
+    </script>
+</body>
+</html>
